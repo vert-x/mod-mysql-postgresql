@@ -1,0 +1,15 @@
+{
+
+  // Scala verticle
+  "main":"scala:com.campudus.vertx.database.Starter",
+
+  // mandatory fields
+  "description":"Using https://github.com/mauricio/postgresql-async to provide a true async connector to PostgreSQL and MySQL",
+  "licenses": ["The Apache Software License Version 2.0"],
+  "author": "Joern Bernhardt",
+
+  // Optional fields
+  //"developers": ["Other Dev 1", "Other Dev 2"],
+  "keywords": ["db", "database", "mysql", "postgresql"],
+  "homepage": "https://github.com/campudus/vertx-mysql-postgresql"
+}
