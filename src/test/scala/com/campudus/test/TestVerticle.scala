@@ -24,7 +24,10 @@ abstract class TestVerticle extends org.vertx.testtools.TestVerticle with VertxE
 
     container.deployModule(System.getProperty("vertx.modulename"), getConfig(), new Handler[AsyncResult[String]]() {
       override def handle(deploymentID: AsyncResult[String]) = {
-        VertxAssert.assertNotNull("deploymentID should not be null", deploymentID.succeeded())
+        if (deploymentID.failed()) {
+          log.info(deploymentID.cause())
+        }
+        VertxAssert.assertTrue("deploymentID should not be null", deploymentID.succeeded())
 
         before() map { _ =>
           log.info("starting tests")

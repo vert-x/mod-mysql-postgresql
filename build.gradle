@@ -61,9 +61,12 @@ dependencies {
   provided "org.scala-lang:scala-compiler:$scalaVersion"
   provided "io.vertx:lang-scala:$scalaLangModVersion"
 
-  compile "com.github.mauricio:postgresql-async_2.10:0.2.4"
-  compile "com.github.mauricio:mysql-async_2.10:0.2.4"
-
+  compile("com.github.mauricio:postgresql-async_2.10:0.2.4") {
+    exclude group: 'org.scala-lang'
+  }
+  compile("com.github.mauricio:mysql-async_2.10:0.2.4") {
+    exclude group: 'org.scala-lang'
+  }
 }
 
 test {

@@ -44,7 +44,7 @@ class Starter extends Verticle {
       pool = new ConnectionHandler(connection, configuration)
       vertx.eventBus.registerHandler(address)(pool)
 
-      logger.info("Async database module for MySQL and PostgreSQL started.")
+      logger.error("Async database module for MySQL and PostgreSQL started.")
 
       startedResult.setResult(null)
     } catch {
