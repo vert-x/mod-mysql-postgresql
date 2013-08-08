@@ -63,9 +63,11 @@ dependencies {
 
   compile("com.github.mauricio:postgresql-async_2.10:$asyncDriverVersion") {
     exclude group: 'org.scala-lang'
+    exclude group: 'io.netty'
   }
   compile("com.github.mauricio:mysql-async_2.10:$asyncDriverVersion") {
     exclude group: 'org.scala-lang'
+    exclude group: 'io.netty'
   }
 }
 
