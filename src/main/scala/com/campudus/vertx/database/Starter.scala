@@ -16,7 +16,7 @@ class Starter extends Verticle {
 
   var connection: String = null
   var configuration: Configuration = null
-  var pool: ConnectionHandler = null
+  var handler: ConnectionHandler = null
 
   override def start(startedResult: org.vertx.scala.core.Future[Void]) = {
 
@@ -37,14 +37,14 @@ class Starter extends Verticle {
       val port = config.getInteger("port", defaultPortFor(connection))
       val username = config.getString("username", defaultUserFor(connection))
       val password = Option(config.getString("password")).orElse(defaultPasswordFor(connection))
-      val database = Option(config.getString("database"))
+      val database = Option(config.getString("database")).orElse(defaultDatabaseFor(connection))
 
       configuration = Configuration(username, host, port, password, database)
 
-      pool = new ConnectionHandler(connection, configuration)
-      vertx.eventBus.registerHandler(address)(pool)
+      handler = new ConnectionHandler(vertx, connection, configuration)
+      vertx.eventBus.registerHandler(address)(handler)
 
-      logger.error("Async database module for MySQL and PostgreSQL started.")
+      logger.error("Async database module for MySQL and PostgreSQL started with config " + configuration)
 
       startedResult.setResult(null)
     } catch {
@@ -55,12 +55,16 @@ class Starter extends Verticle {
   }
 
   override def stop() {
-    Option(pool).map(_.close)
+    Option(handler).map(_.close)
   }
 
   private def defaultPortFor(connection: String): Integer = connection match {
     case "postgresql" => 5432
     case "mysql" => 3306
+  }
+
+  private def defaultDatabaseFor(connection: String): Option[String] = connection match {
+    case _ => Some("testdb")
   }
 
   private def defaultUserFor(connection: String): String = connection match {

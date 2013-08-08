@@ -9,13 +9,11 @@ import com.github.mauricio.async.db.Connection
 import com.campudus.vertx.busmod.ScalaBusMod
 import scala.concurrent.Future
 import com.campudus.vertx.database.pool.AsyncConnectionPool
+import org.vertx.scala.core.Vertx
 
-class ConnectionHandler(dbType: String, config: Configuration) extends ScalaBusMod {
+class ConnectionHandler(vertx: Vertx, dbType: String, config: Configuration) extends ScalaBusMod {
 
-  val pool = dbType match {
-    case "postgresql" => new PostgreSQLAsyncConnectionPool(config)
-    case _ => ???
-  }
+  val pool = AsyncConnectionPool(vertx, dbType, config)
 
   override def receive(msg: Message[JsonObject]) = {
     case "query" => pool.withConnection({ c: Connection =>

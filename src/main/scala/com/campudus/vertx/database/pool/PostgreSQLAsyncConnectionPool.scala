@@ -6,10 +6,12 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import com.campudus.vertx.VertxExecutionContext
 import com.github.mauricio.async.db.Connection
+import org.vertx.java.core.impl.EventLoopContext
+import io.netty.channel.EventLoop
 
-class PostgreSQLAsyncConnectionPool(config: Configuration, implicit val executionContext: ExecutionContext = VertxExecutionContext) extends AsyncConnectionPool[PostgreSQLConnection] {
+class PostgreSQLAsyncConnectionPool(config: Configuration, eventLoop: EventLoop, implicit val executionContext: ExecutionContext = VertxExecutionContext) extends AsyncConnectionPool[PostgreSQLConnection] {
 
-  override def take() = new PostgreSQLConnection(config).connect
+  override def take() = new PostgreSQLConnection(configuration = config, group = eventLoop).connect
 
   override def giveBack(connection: Connection) = {
     connection.disconnect map (_ => this) recover {

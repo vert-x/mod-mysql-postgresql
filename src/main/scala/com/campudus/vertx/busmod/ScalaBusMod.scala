@@ -24,7 +24,9 @@ trait ScalaBusMod extends MessageHelper with VertxExecutionContext with (Message
 
     fut map { reply => msg.reply(reply.toJson) } recover {
       // case x: BusException => msg.reply(new JsonObject().putString("status", "error").putString("message", x.getMessage()).putString("id", x.getId()))
-      case x => msg.reply(new JsonObject().putString("status", "error").putString("message", x.getMessage()))
+      case x =>
+        x.printStackTrace(System.err)
+        msg.reply(new JsonObject().putString("status", "error").putString("message", x.getMessage()))
     }
   }
 

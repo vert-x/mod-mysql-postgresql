@@ -7,6 +7,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Promise
 import scala.util.Failure
 import scala.util.Success
+import org.vertx.scala.core.Vertx
+import org.vertx.java.core.impl.EventLoopContext
 
 trait AsyncConnectionPool[ConnType <: Connection] {
 
@@ -36,8 +38,11 @@ trait AsyncConnectionPool[ConnType <: Connection] {
 
 object AsyncConnectionPool {
 
-  def apply(dbType: String, config: Configuration) = dbType match {
-    case "postgresql" => new PostgreSQLAsyncConnectionPool(config)
+  def apply(vertx: Vertx, dbType: String, config: Configuration) = dbType match {
+    case "postgresql" =>
+      new PostgreSQLAsyncConnectionPool(
+        config,
+        vertx.internal.currentContext().asInstanceOf[EventLoopContext].getEventLoop())
     case _ => throw new NotImplementedError
   }
 

@@ -36,6 +36,7 @@ class PostgreSQLTest extends TestVerticle with VertxScalaHelpers {
   }
 
   private def expectOk(q: JsonObject): Future[JsonObject] = ebSend(q) map { reply =>
+    logger.error("got reply: " + reply.encode())
     assertEquals("ok", reply.getString("status"))
     reply
   }
