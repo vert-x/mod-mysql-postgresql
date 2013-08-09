@@ -10,20 +10,27 @@ import com.campudus.vertx.busmod.ScalaBusMod
 import scala.concurrent.Future
 import com.campudus.vertx.database.pool.AsyncConnectionPool
 import org.vertx.scala.core.Vertx
+import com.campudus.vertx.Verticle
 
-class ConnectionHandler(vertx: Vertx, dbType: String, config: Configuration) extends ScalaBusMod {
+class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuration) extends ScalaBusMod {
+  val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
 
-  val pool = AsyncConnectionPool(vertx, dbType, config)
-
-  override def receive(msg: Message[JsonObject]) = {
-    case "query" => pool.withConnection({ c: Connection =>
-      c.sendQuery(msg.body.getString("query")) map { qr =>
-        qr.rows match {
-          case Some(resultSet) => Ok(new JsonObject().putString("result", resultSet.head(0).toString))
-          case None => Error("Nothing returned.")
+  override def asyncReceive(msg: Message[JsonObject]) = {
+    case "query" =>
+      verticle.container.logger.info("got a query")
+      pool.withConnection({ c: Connection =>
+        verticle.container.logger.info("got a connection")
+        c.sendQuery(msg.body.getString("query")) map { qr =>
+          qr.rows match {
+            case Some(resultSet) =>
+              verticle.container.logger.info("got a Some: " + resultSet)
+              Ok(new JsonObject().putString("result", resultSet.head(0).toString))
+            case None =>
+              verticle.container.logger.info("got a None")
+              Error("Nothing returned.")
+          }
         }
-      }
-    })
+      })
   }
 
   def close() = pool.close

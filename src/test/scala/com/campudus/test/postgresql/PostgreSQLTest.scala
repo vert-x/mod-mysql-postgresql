@@ -30,13 +30,13 @@ class PostgreSQLTest extends TestVerticle with VertxScalaHelpers {
     val p = Promise[JsonObject]
     logger.info("sending " + q.encode() + " to " + address)
     vertx.eventBus.send(address, q, { reply: Message[JsonObject] =>
+      logger.info("got a reply: " + reply.body().encode())
       p.success(reply.body())
     })
     p.future
   }
 
   private def expectOk(q: JsonObject): Future[JsonObject] = ebSend(q) map { reply =>
-    logger.error("got reply: " + reply.encode())
     assertEquals("ok", reply.getString("status"))
     reply
   }
@@ -50,6 +50,8 @@ class PostgreSQLTest extends TestVerticle with VertxScalaHelpers {
 
   @Test
   def simpleConnection() {
+    logger.info("started simple connection test-info")
+
     expectOk(query("SELECT 0")) map { reply =>
       assertEquals(0, reply.getInteger("result"))
       testComplete()

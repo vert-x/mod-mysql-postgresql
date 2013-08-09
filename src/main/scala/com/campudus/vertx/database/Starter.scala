@@ -14,8 +14,6 @@ import org.vertx.scala.core.eventbus.EventBus._
 
 class Starter extends Verticle {
 
-  var connection: String = null
-  var configuration: Configuration = null
   var handler: ConnectionHandler = null
 
   override def start(startedResult: org.vertx.scala.core.Future[Void]) = {
@@ -25,23 +23,11 @@ class Starter extends Verticle {
     try {
       val config = Option(new JsonObject(container.config().toString())).getOrElse(new JsonObject)
 
-      connection = config.getString("connection", "postgresql").toLowerCase match {
-        case "postgresql" => "postgresql"
-        case "mysql" => "mysql"
-        case x => throw new IllegalArgumentException("unknown connection type " + x)
-      }
-
       val address = config.getString("address", "campudus.asyncdb")
+      val dbType = getDatabaseType(config)
+      val configuration = getConfiguration(config, dbType)
 
-      val host = config.getString("host", "localhost")
-      val port = config.getInteger("port", defaultPortFor(connection))
-      val username = config.getString("username", defaultUserFor(connection))
-      val password = Option(config.getString("password")).orElse(defaultPasswordFor(connection))
-      val database = Option(config.getString("database")).orElse(defaultDatabaseFor(connection))
-
-      configuration = Configuration(username, host, port, password, database)
-
-      handler = new ConnectionHandler(vertx, connection, configuration)
+      handler = new ConnectionHandler(this, dbType, configuration)
       vertx.eventBus.registerHandler(address)(handler)
 
       logger.error("Async database module for MySQL and PostgreSQL started with config " + configuration)
@@ -56,6 +42,24 @@ class Starter extends Verticle {
 
   override def stop() {
     Option(handler).map(_.close)
+  }
+
+  private def getDatabaseType(config: JsonObject) = {
+    config.getString("connection", "postgresql").toLowerCase match {
+      case "postgresql" => "postgresql"
+      case "mysql" => "mysql"
+      case x => throw new IllegalArgumentException("unknown connection type " + x)
+    }
+  }
+
+  private def getConfiguration(config: JsonObject, dbType: String) = {
+    val host = config.getString("host", "localhost")
+    val port = config.getInteger("port", defaultPortFor(dbType))
+    val username = config.getString("username", defaultUserFor(dbType))
+    val password = Option(config.getString("password")).orElse(defaultPasswordFor(dbType))
+    val database = Option(config.getString("database")).orElse(defaultDatabaseFor(dbType))
+
+    Configuration(username, host, port, password, database)
   }
 
   private def defaultPortFor(connection: String): Integer = connection match {
