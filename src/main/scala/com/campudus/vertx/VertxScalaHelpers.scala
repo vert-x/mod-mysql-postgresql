@@ -4,6 +4,8 @@ import org.vertx.java.core.Handler
 import org.vertx.java.core.AsyncResult
 import org.vertx.java.core.AsyncResultHandler
 import org.vertx.java.core.json.JsonObject
+import org.vertx.java.core.json.JsonArray
+import scala.concurrent.Future
 
 trait VertxScalaHelpers {
   def json() = new JsonObject()
@@ -23,6 +25,13 @@ trait VertxScalaHelpers {
 
   def tryOp[T](f: => T): Option[T] = try { Some(f) } catch { case _: Throwable => None }
   def toInt(s: String): Option[Int] = tryOp(s.toInt)
+
+  implicit def listToJsonArray[X](list: List[X]): JsonArray = {
+    val arr = new JsonArray()
+    list.foreach(arr.add)
+    arr
+  }
+
 }
 
 object VertxScalaHelpers extends VertxScalaHelpers

@@ -22,14 +22,22 @@ trait AsyncConnectionPool[ConnType <: Connection] {
     val p = Promise[ResultType]
     take map { c: Connection =>
       try {
+        println("got connection from pool")
         fn(c).onComplete {
-          case Success(x) => p.success(x)
-          case Failure(x) => p.failure(x)
+          case Success(x) =>
+            println("got a success -> connection back to pool")
+            giveBack(c)
+            p.success(x)
+          case Failure(x) =>
+            println("got a failure -> connection back to pool")
+            giveBack(c)
+            p.failure(x)
         }
       } catch {
-        case ex: Throwable => p.failure(ex)
-      } finally {
-        giveBack(c)
+        case ex: Throwable =>
+          println("connection back into pool")
+          giveBack(c)
+          p.failure(ex)
       }
     }
     p.future
