@@ -1,9 +1,9 @@
 package com.campudus.test
 
 import scala.concurrent.Future
-
 import org.vertx.scala.core.json.JsonArray
-import org.vertx.testtools.VertxAssert.assertEquals
+import org.vertx.testtools.VertxAssert._
+import org.vertx.scala.core.json.Json
 
 trait BaseSqlTests { this: SqlTestVerticle =>
   lazy val logger = getContainer().logger()
@@ -133,4 +133,34 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     }
   }
 
+  // TODO make possible to query multiple tables in a single select
+  //  def selectMultipleTables(): Unit = asyncTest(withTable("some_test1")(withTable("some_test2") {
+  //    val mrTest = Json.arr(List("Mr. Test", "test@example.com", 15))
+  //    val mrsTest = Json.arr(List("Mrs. Test", "test2@example.com", 14))
+  //    val mrExample = Json.arr(List("Mr. Example", "test@example.com", 13))
+  //    for {
+  //      _ <- ebSend(insert("some_test1", Json.arr(List("name", "email", "age")), mrTest))
+  //      _ <- ebSend(insert("some_test1", Json.arr(List("name", "email", "age")), mrsTest))
+  //      _ <- ebSend(insert("some_test2", Json.arr(List("name", "email", "age")), mrExample))
+  //      reply <- ebSend(select(Json(List("some_test1", "some_test2"), Json.arr(List("some_test2.name", "some_test2.email", "some_test2.age"))))
+  //    } yield {
+  //      assertEquals("ok", reply.getString("status"))
+  //      assertEquals(2, reply.getString("status"))
+  //      val results = reply.getArray("results")
+  //      assertTrue("should contain Mr. Example", results.get[JsonArray](0).contains(mrExample))
+  //    }
+  //  }))
+
+  def selectWithCondition(): Unit = fail("not implemented")
+  def updateWithoutCondition(): Unit = fail("not implemented")
+  def updateWithCondition(): Unit = fail("not implemented")
+  def preparedSelect(): Unit = typeTestInsert {
+    expectOk(prepared("SELECT email FROM some_test WHERE name=? AND age=?", Json.arr(List("Mr. Test", 15)))) map { reply =>
+      val receivedFields = reply.getArray("fields")
+      assertEquals(Json.arr(List("email")), receivedFields)
+      assertEquals(1, reply.getInteger("rows"))
+      assertEquals("test@example.com", reply.getArray("results").get[JsonArray](0).get[String](0))
+    }
+  }
+  def transaction(): Unit = fail("not implemented")
 }

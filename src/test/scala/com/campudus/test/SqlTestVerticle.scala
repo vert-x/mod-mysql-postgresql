@@ -85,6 +85,8 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Ver
 
   protected def select(table: String, fields: JsonArray) = Json.obj("action" -> "select", "table" -> table, "fields" -> fields)
 
+  protected def prepared(statement: String, values: JsonArray) = Json.obj("action" -> "prepared", "statement" -> statement, "values" -> values)
+
   protected def createTable(tableName: String) = expectOk(raw("""
 CREATE TABLE """ + tableName + """ (
   id SERIAL,

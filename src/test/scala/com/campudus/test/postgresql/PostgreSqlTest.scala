@@ -13,22 +13,32 @@ class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
   override def getConfig = config
 
   @Test
-  override def selectFiltered(): Unit = super.selectFiltered()
+  override def simpleConnection(): Unit = super.simpleConnection()
   @Test
-  override def selectEverything(): Unit = super.selectEverything()
+  override def multipleFields(): Unit = super.multipleFields()
+  @Test
+  override def createAndDropTable(): Unit = super.createAndDropTable()
+  @Test
+  override def insertCorrect(): Unit = super.insertCorrect()
+  @Test
+  override def insertTypeTest(): Unit = super.insertTypeTest()
   @Test
   override def insertUniqueProblem(): Unit = super.insertUniqueProblem()
   @Test
   override def insertMaliciousDataTest(): Unit = super.insertMaliciousDataTest()
   @Test
-  override def insertTypeTest(): Unit = super.insertTypeTest()
+  override def selectEverything(): Unit = super.selectEverything()
   @Test
-  override def insertCorrect(): Unit = super.insertCorrect()
+  override def selectFiltered(): Unit = super.selectFiltered()
   @Test
-  override def createAndDropTable(): Unit = super.createAndDropTable()
+  override def selectWithCondition(): Unit = super.selectWithCondition()
   @Test
-  override def multipleFields(): Unit = super.multipleFields()
+  override def updateWithoutCondition(): Unit = super.updateWithoutCondition()
   @Test
-  override def simpleConnection(): Unit = super.simpleConnection()
+  override def updateWithCondition(): Unit = super.updateWithCondition()
+  @Test
+  override def preparedSelect(): Unit = super.preparedSelect()
+  @Test
+  override def transaction(): Unit = super.transaction()
 
 }
