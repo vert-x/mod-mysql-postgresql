@@ -113,3 +113,67 @@ And if you want to drop it again, you can send the following:
       "action" : "raw",
       "command" : "DROP TABLE some_test;"
     }
+
+## Planned actions
+
+You can always use `raw` to do anything on the database. If the statement is a query, it will return its results just like a `select`.
+
+The `select`, `insert` and following actions just for you to be able to have a cross-database application in the end. If you do not use `raw`, these commands should create the needed statements for you.
+
+* `update` - Updates rows of a table
+* `delete` - Deletes rows from a table
+* `prepared` - Create a prepared statement
+* `create` - Creates a table
+* `drop` - Drops a table
+* `transaction` - Create a transaction
+
+These actions are currently not available, but they should be implemented soon. Please see the following examples and send feedback:
+
+    { // UPDATE some_test SET age=age+1 WHERE id=1
+      "action" : "update",
+      "table" : "some_test",
+      "set" : "age=age+1",
+      "condition" : "id=1"
+    }
+
+    { // DELETE FROM some_test WHERE id = 5
+      "action" : "delete",
+      "table" : "some_test",
+      "condition" : "id = 5"
+    }
+
+    // SELECT name, email FROM some_test WHERE is_male=? AND money >= ?
+    {
+      "action" : "prepared",
+      "statement" : "SELECT name, email FROM some_test WHERE is_male=? AND money >= ?",
+      "values" : [true,100]
+    }
+
+Not sure about the next one, since it would need quite some work and thought for the cross-database types.
+
+    // CREATE TABLE some_test (
+    //   id SERIAL,
+    //   name VARCHAR(255),
+    //   email VARCHAR(255),
+    //   age INTEGER
+    // );
+    { 
+      "action" : "create",
+      "table" : "some_test",
+      "fields" : ["id PRIMARY KEY", "name VARCHAR(255)", "email VARCHAR(255)", "age INTEGER"]
+    }
+
+    { // DROP TABLE some_test
+      "action" : "drop",
+      "table" : "some_test",
+    }
+
+This one should be a nice to have feature:
+
+    {
+      "action" : "transaction",
+      "statements" : [
+        { "action" : "update", "table" : "account", "set" : "money=money-50", "condition" : "id=1" },
+        { "action" : "update", "table" : "inventory", "set" : "cats=cats+1", "condition" : "account_id=1" }
+      ]
+    }
