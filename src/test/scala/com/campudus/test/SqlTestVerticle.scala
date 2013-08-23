@@ -51,7 +51,8 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Ver
   protected def asyncTest[X](fn: => Future[X]) = {
     fn recover {
       case x =>
-        fail("Something failed asynchronously: " + x.getMessage())
+        log.error("async fail in test code!", x)
+        fail("Something failed asynchronously: " + x.getClass() + x.getMessage())
     } map { _ =>
       testComplete()
     }
@@ -84,7 +85,7 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Ver
   protected def insert(table: String, fields: JsonArray, values: JsonArray) =
     new JsonObject().putString("action", "insert").putString("table", table).putArray("fields", fields).putArray("values", values)
 
-  protected def select(q: String) = new JsonObject().putString("action", "select").putString("query", q)
+  protected def select(table: String, fields: JsonArray) = new JsonObject().putString("action", "select").putString("table", table).putArray("fields", fields)
 
   protected def createTable(tableName: String) = expectOk(raw("""
 CREATE TABLE """ + tableName + """ (
@@ -98,7 +99,6 @@ CREATE TABLE """ + tableName + """ (
 );
 """)) map { reply =>
     assertEquals(0, reply.getNumber("rows"))
-    assertEquals(0, reply.getArray("results").size())
     reply
   }
 

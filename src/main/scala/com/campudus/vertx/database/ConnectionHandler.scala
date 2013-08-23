@@ -16,6 +16,7 @@ import com.campudus.vertx.VertxScalaHelpers
 import org.vertx.java.core.json.JsonArray
 import com.github.mauricio.async.db.RowData
 import collection.JavaConverters._
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 
 class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuration) extends ScalaBusMod with VertxScalaHelpers {
   val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
@@ -30,15 +31,22 @@ class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuratio
   def close() = pool.close
 
   private def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
-    Future.successful(Ok(new JsonObject))
+    val table = escapeField(json.getString("table"))
+    val command = Option(json.getArray("fields")) match {
+      case Some(fields) => fields.asScala.toStream.map(elem => escapeField(elem.toString)).mkString("SELECT ", ",", " FROM " + table)
+      case None => "SELECT * FROM " + table
+    }
+
+    rawCommand(command)
   })
 
-  private def escapeString(str: String): String = str.replace("'", "''")
+  private def escapeField(str: String): String = "\"" + str.replace("\"", "\"\"") + "\""
+  private def escapeString(str: String): String = "'" + str.replace("'", "''") + "'"
 
   private def escapeValue(v: Any): String = v match {
     case v: Int => v.toString
     case v: Boolean => v.toString
-    case v => "'" + escapeString(v.toString) + "'"
+    case v => escapeString(v.toString)
   }
 
   private def insert(json: JsonObject): Future[Reply] = {
@@ -48,14 +56,12 @@ class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuratio
     val listOfLines = for {
       line <- lines
     } yield {
-      line.asInstanceOf[JsonArray].asScala.toStream.map { v =>
-        escapeValue(v)
-      } mkString ("(", ",", ")")
+      line.asInstanceOf[JsonArray].asScala.toStream.map(v => escapeValue(v)).mkString("(", ",", ")")
     }
     val cmd = new StringBuilder("INSERT INTO ")
-      .append(table)
+      .append(escapeField(table))
       .append(" ")
-      .append(fields.map(_.toString).mkString("(", ",", ")"))
+      .append(fields.map(f => escapeField(f.toString)).mkString("(", ",", ")"))
       .append(" VALUES ")
       .append(listOfLines.mkString(","))
 
@@ -65,8 +71,10 @@ class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuratio
   private def rawCommand(command: String): Future[Reply] = pool.withConnection({ c: Connection =>
     logger.info("sending command: " + command)
     c.sendQuery(command) map buildResults recover {
-      case x: Throwable =>
-        Error("problem: " + x.getMessage())
+      case x: GenericDatabaseException =>
+        Error(x.errorMessage.message)
+      case x =>
+        Error(x.getMessage())
     }
   })
 
@@ -85,7 +93,7 @@ class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuratio
         }
         result.putArray("fields", fields)
         result.putArray("results", rows)
-      case None => result.putArray("results", new JsonArray())
+      case None =>
     }
 
     Ok(result)
