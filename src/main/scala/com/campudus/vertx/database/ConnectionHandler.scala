@@ -1,7 +1,6 @@
 package com.campudus.vertx.database
 
 import org.vertx.scala.core.eventbus.Message
-import org.vertx.java.core.json.JsonObject
 import com.github.mauricio.async.db.Configuration
 import com.campudus.vertx.database.pool.PostgreSqlAsyncConnectionPool
 import com.campudus.vertx.VertxExecutionContext
@@ -13,10 +12,10 @@ import org.vertx.scala.core.Vertx
 import com.campudus.vertx.Verticle
 import com.github.mauricio.async.db.QueryResult
 import com.campudus.vertx.VertxScalaHelpers
-import org.vertx.java.core.json.JsonArray
 import com.github.mauricio.async.db.RowData
 import collection.JavaConverters._
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
+import org.vertx.scala.core.json._
 
 trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   val verticle: Verticle

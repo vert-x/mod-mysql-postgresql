@@ -1,7 +1,6 @@
 package com.campudus.vertx.database
 
 import com.campudus.vertx.Verticle
-import org.vertx.java.core.json.JsonObject
 import com.github.mauricio.async.db.postgresql.util.URLParser
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.postgresql.pool.PostgreSQLConnectionFactory
@@ -9,8 +8,8 @@ import com.github.mauricio.async.db.pool.ConnectionPool
 import com.github.mauricio.async.db.pool.PoolConfiguration
 import com.campudus.vertx.VertxExecutionContext
 import com.campudus.vertx.database.pool.AsyncConnectionPool
-import org.vertx.scala.core.json.JSON
 import org.vertx.scala.core.eventbus.EventBus._
+import org.vertx.scala.core.json._
 
 class Starter extends Verticle {
 
@@ -21,7 +20,7 @@ class Starter extends Verticle {
     logger.error("Starting async database module for MySQL and PostgreSQL.")
 
     try {
-      val config = Option(new JsonObject(container.config().toString())).getOrElse(new JsonObject)
+      val config = Option(container.config()).getOrElse(Json.emptyObj())
 
       val address = config.getString("address", "campudus.asyncdb")
       val dbType = getDatabaseType(config)

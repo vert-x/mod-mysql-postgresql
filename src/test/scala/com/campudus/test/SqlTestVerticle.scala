@@ -2,7 +2,6 @@ package com.campudus.test
 
 import com.campudus.vertx.VertxExecutionContext
 import scala.concurrent.Future
-import org.vertx.java.core.json.JsonObject
 import org.vertx.java.core.Handler
 import org.vertx.java.core.AsyncResult
 import org.vertx.testtools.VertxAssert._
@@ -11,12 +10,11 @@ import org.junit.runner.RunWith
 import org.vertx.testtools.JavaClassRunner
 import java.lang.reflect.InvocationTargetException
 import org.vertx.java.core.logging.impl.LoggerFactory
-import org.vertx.scala.core.json.JSON
 import scala.concurrent.Promise
 import org.vertx.scala.core.eventbus.Message
 import org.vertx.scala.core.Vertx
-import org.vertx.java.core.json.JsonArray
 import com.campudus.vertx.VertxScalaHelpers
+import org.vertx.scala.core.json._
 
 abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with VertxExecutionContext with VertxScalaHelpers {
 
@@ -44,7 +42,7 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Ver
 
   def before(): Future[_] = Future.successful()
 
-  def getConfig(): JsonObject = new JsonObject()
+  def getConfig(): JsonObject = Json.emptyObj()
 
   val address: String
 
@@ -80,12 +78,12 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Ver
     reply
   }
 
-  protected def raw(q: String) = new JsonObject().putString("action", "raw").putString("command", q)
+  protected def raw(q: String) = Json.obj("action" -> "raw", "command" -> q)
 
   protected def insert(table: String, fields: JsonArray, values: JsonArray) =
-    new JsonObject().putString("action", "insert").putString("table", table).putArray("fields", fields).putArray("values", values)
+    Json.obj("action" -> "insert", "table" -> table, "fields" -> fields, "values" -> values)
 
-  protected def select(table: String, fields: JsonArray) = new JsonObject().putString("action", "select").putString("table", table).putArray("fields", fields)
+  protected def select(table: String, fields: JsonArray) = Json.obj("action" -> "select", "table" -> table, "fields" -> fields)
 
   protected def createTable(tableName: String) = expectOk(raw("""
 CREATE TABLE """ + tableName + """ (

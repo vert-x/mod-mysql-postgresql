@@ -1,6 +1,6 @@
 package com.campudus.vertx.messages
 
-import org.vertx.java.core.json.JsonObject
+import org.vertx.scala.core.json._
 
 trait MessageHelper {
   sealed trait Reply {
@@ -11,7 +11,7 @@ trait MessageHelper {
   }
   case class Error(message: String, id: Option[String] = None, obj: Option[JsonObject] = None) extends Reply {
     def toJson = {
-      val js = obj.getOrElse(new JsonObject()).putString("status", "error").putString("message", message)
+      val js = obj.getOrElse(Json.obj("status" -> "error", "message" -> message))
       id map (x => js.putString("id", x))
       js
     }
