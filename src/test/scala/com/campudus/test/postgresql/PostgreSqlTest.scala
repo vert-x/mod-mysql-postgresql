@@ -1,14 +1,14 @@
 package com.campudus.test.postgresql
 
 import org.junit.Test
-import org.vertx.java.core.json.JsonObject
+import org.vertx.scala.core.json._
 
 import com.campudus.test.{ BaseSqlTests, SqlTestVerticle }
 
 class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
 
   val address = "campudus.asyncdb"
-  val config = new JsonObject().putString("address", address)
+  val config = Json.obj("address" -> address)
 
   override def getConfig = config
 

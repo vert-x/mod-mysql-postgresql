@@ -2,7 +2,7 @@ package com.campudus.test
 
 import scala.concurrent.Future
 
-import org.vertx.java.core.json.JsonArray
+import org.vertx.scala.core.json.JsonArray
 import org.vertx.testtools.VertxAssert.assertEquals
 
 trait BaseSqlTests { this: SqlTestVerticle =>

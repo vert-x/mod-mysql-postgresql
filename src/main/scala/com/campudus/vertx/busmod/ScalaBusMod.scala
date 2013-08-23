@@ -2,7 +2,7 @@ package com.campudus.vertx.busmod
 
 import scala.concurrent.Future
 
-import org.vertx.java.core.json.JsonObject
+import org.vertx.scala.core.json._
 import org.vertx.scala.core.eventbus.Message
 
 import com.campudus.vertx.VertxExecutionContext
@@ -34,7 +34,7 @@ trait ScalaBusMod extends MessageHelper with VertxExecutionContext with (Message
       // case x: BusException => msg.reply(new JsonObject().putString("status", "error").putString("message", x.getMessage()).putString("id", x.getId()))
       case x =>
         x.printStackTrace(System.err)
-        msg.reply(new JsonObject().putString("status", "error").putString("message", x.getMessage()))
+        msg.reply(Json.obj("status" -> "error", "message" -> x.getMessage()))
     }
   }
 

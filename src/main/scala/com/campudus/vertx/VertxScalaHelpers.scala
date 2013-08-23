@@ -3,8 +3,7 @@ package com.campudus.vertx
 import org.vertx.java.core.Handler
 import org.vertx.java.core.AsyncResult
 import org.vertx.java.core.AsyncResultHandler
-import org.vertx.java.core.json.JsonObject
-import org.vertx.java.core.json.JsonArray
+import org.vertx.scala.core.json._
 import scala.concurrent.Future
 
 trait VertxScalaHelpers {
@@ -27,9 +26,7 @@ trait VertxScalaHelpers {
   def toInt(s: String): Option[Int] = tryOp(s.toInt)
 
   implicit def listToJsonArray[X](list: List[X]): JsonArray = {
-    val arr = new JsonArray()
-    list.foreach(arr.add)
-    arr
+    Json.arr(list)
   }
 
 }
