@@ -46,12 +46,18 @@ trait AsyncConnectionPool[ConnType <: Connection] {
 
 object AsyncConnectionPool {
 
-  def apply(vertx: Vertx, dbType: String, config: Configuration) = dbType match {
-    case "postgresql" =>
-      new PostgreSQLAsyncConnectionPool(
-        config,
-        vertx.internal.currentContext().asInstanceOf[EventLoopContext].getEventLoop())
-    case _ => throw new NotImplementedError
+  def apply(vertx: Vertx, dbType: String, config: Configuration) = {
+    println("got db type: " + dbType)
+    dbType match {
+      case "postgresql" =>
+        new PostgreSqlAsyncConnectionPool(
+          config,
+          vertx.internal.currentContext().asInstanceOf[EventLoopContext].getEventLoop())
+      case "mysql" =>
+        new MySqlAsyncConnectionPool(config,
+          vertx.internal.currentContext().asInstanceOf[EventLoopContext].getEventLoop())
+      case _ => throw new NotImplementedError
+    }
   }
 
 }

@@ -3,7 +3,7 @@ package com.campudus.vertx.database
 import org.vertx.scala.core.eventbus.Message
 import org.vertx.java.core.json.JsonObject
 import com.github.mauricio.async.db.Configuration
-import com.campudus.vertx.database.pool.PostgreSQLAsyncConnectionPool
+import com.campudus.vertx.database.pool.PostgreSqlAsyncConnectionPool
 import com.campudus.vertx.VertxExecutionContext
 import com.github.mauricio.async.db.Connection
 import com.campudus.vertx.busmod.ScalaBusMod
@@ -18,9 +18,12 @@ import com.github.mauricio.async.db.RowData
 import collection.JavaConverters._
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 
-class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuration) extends ScalaBusMod with VertxScalaHelpers {
-  val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
-  val logger = verticle.container.logger()
+trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
+  val verticle: Verticle
+  def dbType: String
+  val config: Configuration
+  lazy val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
+  lazy val logger = verticle.container.logger()
 
   override def asyncReceive(msg: Message[JsonObject]) = {
     case "select" => select(msg.body)
@@ -30,7 +33,7 @@ class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuratio
 
   def close() = pool.close
 
-  private def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+  protected def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
     val table = escapeField(json.getString("table"))
     val command = Option(json.getArray("fields")) match {
       case Some(fields) => fields.asScala.toStream.map(elem => escapeField(elem.toString)).mkString("SELECT ", ",", " FROM " + table)
@@ -40,16 +43,16 @@ class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuratio
     rawCommand(command)
   })
 
-  private def escapeField(str: String): String = "\"" + str.replace("\"", "\"\"") + "\""
-  private def escapeString(str: String): String = "'" + str.replace("'", "''") + "'"
+  protected def escapeField(str: String): String = "\"" + str.replace("\"", "\"\"") + "\""
+  protected def escapeString(str: String): String = "'" + str.replace("'", "''") + "'"
 
-  private def escapeValue(v: Any): String = v match {
+  protected def escapeValue(v: Any): String = v match {
     case v: Int => v.toString
     case v: Boolean => v.toString
     case v => escapeString(v.toString)
   }
 
-  private def insert(json: JsonObject): Future[Reply] = {
+  protected def insert(json: JsonObject): Future[Reply] = {
     val table = json.getString("table")
     val fields = json.getArray("fields").asScala
     val lines = json.getArray("values").asScala
@@ -68,7 +71,7 @@ class ConnectionHandler(verticle: Verticle, dbType: String, config: Configuratio
     rawCommand(cmd.toString)
   }
 
-  private def rawCommand(command: String): Future[Reply] = pool.withConnection({ c: Connection =>
+  protected def rawCommand(command: String): Future[Reply] = pool.withConnection({ c: Connection =>
     logger.info("sending command: " + command)
     c.sendQuery(command) map buildResults recover {
       case x: GenericDatabaseException =>

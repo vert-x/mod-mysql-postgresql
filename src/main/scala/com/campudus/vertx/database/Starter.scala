@@ -27,7 +27,10 @@ class Starter extends Verticle {
       val dbType = getDatabaseType(config)
       val configuration = getConfiguration(config, dbType)
 
-      handler = new ConnectionHandler(this, dbType, configuration)
+      handler = dbType match {
+        case "postgresql" => new PostgreSqlConnectionHandler(this, configuration)
+        case "mysql" => new MySqlConnectionHandler(this, configuration)
+      }
       vertx.eventBus.registerHandler(address)(handler)
 
       logger.error("Async database module for MySQL and PostgreSQL started with config " + configuration)
