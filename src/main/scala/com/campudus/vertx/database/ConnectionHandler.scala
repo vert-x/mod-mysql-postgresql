@@ -27,10 +27,20 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   override def asyncReceive(msg: Message[JsonObject]) = {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)
+    case "prepared" => prepared(msg.body)
     case "raw" => rawCommand(msg.body.getString("command"))
   }
 
   def close() = pool.close
+
+  protected def escapeField(str: String): String = "\"" + str.replace("\"", "\"\"") + "\""
+  protected def escapeString(str: String): String = "'" + str.replace("'", "''") + "'"
+
+  protected def escapeValue(v: Any): String = v match {
+    case v: Int => v.toString
+    case v: Boolean => v.toString
+    case v => escapeString(v.toString)
+  }
 
   protected def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
     val table = escapeField(json.getString("table"))
@@ -41,15 +51,6 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
 
     rawCommand(command)
   })
-
-  protected def escapeField(str: String): String = "\"" + str.replace("\"", "\"\"") + "\""
-  protected def escapeString(str: String): String = "'" + str.replace("'", "''") + "'"
-
-  protected def escapeValue(v: Any): String = v match {
-    case v: Int => v.toString
-    case v: Boolean => v.toString
-    case v => escapeString(v.toString)
-  }
 
   protected def insert(json: JsonObject): Future[Reply] = {
     val table = json.getString("table")
@@ -69,6 +70,15 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
 
     rawCommand(cmd.toString)
   }
+
+  protected def prepared(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+    c.sendPreparedStatement(json.getString("statement"), json.getArray("values").toArray()) map buildResults recover {
+      case x: GenericDatabaseException =>
+        Error(x.errorMessage.message)
+      case x =>
+        Error(x.getMessage())
+    }
+  })
 
   protected def rawCommand(command: String): Future[Reply] = pool.withConnection({ c: Connection =>
     logger.info("sending command: " + command)
