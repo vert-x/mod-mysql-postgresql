@@ -1,6 +1,6 @@
-# vertx-mysql-postgres
+# mod-mysql-postgresql
 
-This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers to support an async module for MySQL and PostgreSQL.
+This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers to support a fully async module for MySQL and PostgreSQL.
 
 ## Requirements
 
@@ -9,7 +9,7 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 
 ## Installation
 
-`vertx install com.campudus.async-mysql-postgresql`
+`vertx install io.vertx.mod-mysql-postgresql`
 
 ## Configuration
 
