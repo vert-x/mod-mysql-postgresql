@@ -90,7 +90,7 @@ def configurePom(def pom) {
     inceptionYear '2013'
     packaging produceJar == 'false' ? 'pom' : 'jar'
 
-    url 'https://github.com/campudus/vertx-mysql-postgresql'
+    url 'https://github.com/vert-x/mod-mysql-postgresql'
 
     developers {
       developer {
@@ -101,7 +101,7 @@ def configurePom(def pom) {
     }
 
     scm {
-      url 'https://github.com/campudus/vertx-mysql-postgresql'
+      url 'https://github.com/vert-x/mod-mysql-postgresql'
     }
 
     licenses {
