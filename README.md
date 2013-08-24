@@ -5,6 +5,7 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 ## Requirements
 
 * Vert.x 2.0+
+* Current mod-lang-scala commit (https://github.com/vert-x/mod-lang-scala/tree/b3918f28ef50de33102a0453475e8c9d9b760526)
 
 ## Installation
 
