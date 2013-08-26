@@ -53,7 +53,7 @@ The module will reply to all requests. In the message, there will be either a `"
       ]
     } 
 
-* `rows` gives you the number of rows affected by the statement sent to the server.
+* `rows` gives you the number of rows affected by the statement sent to the server. Bear in mind that MySQL only shows a row count on changed rows (DELETE, UPDATE, INSERT statements) whereas PostgreSQL also shows the number of SELECTed rows here.
 * `message` is a status message from the server.
 * `fields` contains the list of fields of the selected table - Only present if the request resulted in a result set.
 * `results` contains a list of rows - Only present if the request resulted in a result set.
@@ -86,7 +86,17 @@ The `select` action creates a `SELECT` statement to get a projection from a tabl
     {
       "action" : "select",
       "table" : "some_test",
-      "fields" : ["name", "email", "is_male", "age", "money", "wedding_date"]
+      "fields" : ["name", "email", "is_male", "age", "money", "wedding_date"], // Optional
+      "conditions" : { // Optional
+        "$and" : [
+          {
+            "is_male" : { "$eq" : true }
+          },
+          {
+            "age" : { "$gt" : 14 }
+          }
+        ]
+      }
     }
 
 ### raw - Raw commands
@@ -134,13 +144,21 @@ These actions are currently not available, but they should be implemented soon. 
       "action" : "update",
       "table" : "some_test",
       "set" : "age=age+1",
-      "condition" : "id=1"
+      "conditions" : {
+        "$eq" {
+          "id" : 1
+        }
+      }
     }
 
     { // DELETE FROM some_test WHERE id = 5
       "action" : "delete",
       "table" : "some_test",
-      "condition" : "id = 5"
+      "conditions" : {
+        "$eq" {
+          "id" : 5
+        }
+      }
     }
 
     // SELECT name, email FROM some_test WHERE is_male=? AND money >= ?

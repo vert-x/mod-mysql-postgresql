@@ -42,14 +42,23 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
     case v => escapeString(v.toString)
   }
 
+  private def parseConditions(jsObj: JsonObject): String = {
+    // FIXME parse conditions
+    "1=1"
+  }
+
   protected def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
     val table = escapeField(json.getString("table"))
-    val command = Option(json.getArray("fields")) match {
+    val selection = Option(json.getArray("fields")) match {
       case Some(fields) => fields.asScala.toStream.map(elem => escapeField(elem.toString)).mkString("SELECT ", ",", " FROM " + table)
       case None => "SELECT * FROM " + table
     }
+    val condition = Option(json.getObject("conditions")) match {
+      case Some(conditions) => " WHERE " + parseConditions(conditions)
+      case None => ""
+    }
 
-    rawCommand(command)
+    rawCommand(selection + condition)
   })
 
   protected def insert(json: JsonObject): Future[Reply] = {
