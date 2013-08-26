@@ -16,9 +16,7 @@ import org.vertx.scala.core.Vertx
 import io.vertx.helpers.VertxScalaHelpers
 import org.vertx.scala.core.json._
 
-abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with VertxExecutionContext with VertxScalaHelpers {
-
-  lazy val log = container.logger()
+abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
 
   override def start() = {
     initialize()
@@ -44,40 +42,6 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Ver
 
   def getConfig(): JsonObject = Json.emptyObj()
 
-  val address: String
-
-  protected def asyncTest[X](fn: => Future[X]) = {
-    fn recover {
-      case x =>
-        log.error("async fail in test code!", x)
-        fail("Something failed asynchronously: " + x.getClass() + x.getMessage())
-    } map { _ =>
-      testComplete()
-    }
-  }
-
-  protected def ebSend(q: JsonObject): Future[JsonObject] = {
-    val p = Promise[JsonObject]
-    log.info("sending " + q.encode() + " to " + address)
-    Vertx(vertx).eventBus.send(address, q) { reply: Message[JsonObject] =>
-      log.info("got a reply: " + reply.body.encode())
-      p.success(reply.body)
-    }
-    p.future
-  }
-
-  protected def expectOk(q: JsonObject): Future[JsonObject] = ebSend(q) map { reply =>
-    assertEquals("ok", reply.getString("status"))
-    reply
-  }
-
-  protected def expectError(q: JsonObject, errorId: Option[String] = None, errorMessage: Option[String] = None): Future[JsonObject] = ebSend(q) map { reply =>
-    assertEquals("error", reply.getString("status"))
-    errorId.map(assertEquals(_, reply.getString("id")))
-    errorMessage.map(assertEquals(_, reply.getString("message")))
-    reply
-  }
-
   protected def raw(q: String) = Json.obj("action" -> "raw", "command" -> q)
 
   protected def insert(table: String, fields: JsonArray, values: JsonArray) =
@@ -87,7 +51,16 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Ver
 
   protected def prepared(statement: String, values: JsonArray) = Json.obj("action" -> "prepared", "statement" -> statement, "values" -> values)
 
-  protected def createTable(tableName: String) = expectOk(raw("""
+  protected def createTable(tableName: String) = expectOk(raw(createTableStatement(tableName))) map { reply =>
+    assertEquals(0, reply.getNumber("rows"))
+    reply
+  }
+
+  protected def dropTable(tableName: String) = expectOk(raw("DROP TABLE " + tableName + ";")) map { reply =>
+    reply
+  }
+
+  protected def createTableStatement(tableName: String) = """
 CREATE TABLE """ + tableName + """ (
   id SERIAL,
   name VARCHAR(255),
@@ -97,13 +70,5 @@ CREATE TABLE """ + tableName + """ (
   money FLOAT,
   wedding_date DATE
 );
-""")) map { reply =>
-    assertEquals(0, reply.getNumber("rows"))
-    reply
-  }
-
-  protected def dropTable(tableName: String) = expectOk(raw("DROP TABLE " + tableName + ";")) map { reply =>
-    reply
-  }
-
+"""
 }
