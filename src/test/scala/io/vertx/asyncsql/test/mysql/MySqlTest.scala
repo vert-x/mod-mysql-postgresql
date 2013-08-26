@@ -12,27 +12,46 @@ class MySqlTest extends SqlTestVerticle with BaseSqlTests {
 
   override def getConfig = config
 
-  // FIXME test stuff
-  @Test
-  def something(): Unit = VertxAssert.testComplete()
+  override def createTableStatement(tableName: String) = """
+CREATE TABLE """ + tableName + """ (
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255),
+  email VARCHAR(255) UNIQUE,
+  is_male BOOLEAN,
+  age INT,
+  money FLOAT,
+  wedding_date DATE,
+  PRIMARY KEY (id)
+);
+"""
 
-  //  @Test
-  //  override def selectFiltered(): Unit = super.selectFiltered()
-  //  @Test
-  //  override def selectEverything(): Unit = super.selectEverything()
-  //  @Test
-  //  override def insertUniqueProblem(): Unit = super.insertUniqueProblem()
-  //  @Test
-  //  override def insertMaliciousDataTest(): Unit = super.insertMaliciousDataTest()
-  //  @Test
-  //  override def insertTypeTest(): Unit = super.insertTypeTest()
-  //  @Test
-  //  override def insertCorrect(): Unit = super.insertCorrect()
-  //  @Test
-  //  override def createAndDropTable(): Unit = super.createAndDropTable()
-  //  @Test
-  //  override def multipleFields(): Unit = super.multipleFields()
-  //  @Test
-  //  override def simpleConnection(): Unit = super.simpleConnection()
+  @Test
+  override def simpleConnection(): Unit = super.simpleConnection()
+  @Test
+  override def multipleFields(): Unit = super.multipleFields()
+  @Test
+  override def createAndDropTable(): Unit = super.createAndDropTable()
+  @Test
+  override def insertCorrect(): Unit = super.insertCorrect()
+  @Test
+  override def insertTypeTest(): Unit = super.insertTypeTest()
+  @Test
+  override def insertUniqueProblem(): Unit = super.insertUniqueProblem()
+  @Test
+  override def insertMaliciousDataTest(): Unit = super.insertMaliciousDataTest()
+  @Test
+  override def selectEverything(): Unit = super.selectEverything()
+  @Test
+  override def selectFiltered(): Unit = super.selectFiltered()
+  @Test
+  override def selectWithCondition(): Unit = super.selectWithCondition()
+  @Test
+  override def updateWithoutCondition(): Unit = super.updateWithoutCondition()
+  @Test
+  override def updateWithCondition(): Unit = super.updateWithCondition()
+  @Test
+  override def preparedSelect(): Unit = super.preparedSelect()
+  @Test
+  override def transaction(): Unit = super.transaction()
 
 }
