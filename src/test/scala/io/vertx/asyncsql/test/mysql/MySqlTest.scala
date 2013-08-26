@@ -13,7 +13,7 @@ class MySqlTest extends SqlTestVerticle with BaseSqlTests {
   override def getConfig = config
 
   override def createTableStatement(tableName: String) = """
-CREATE TABLE """ + tableName + """ (
+CREATE TABLE IF NOT EXISTS """ + tableName + """ (
   id INT NOT NULL AUTO_INCREMENT,
   name VARCHAR(255),
   email VARCHAR(255) UNIQUE,
@@ -39,6 +39,8 @@ CREATE TABLE """ + tableName + """ (
   override def insertUniqueProblem(): Unit = super.insertUniqueProblem()
   @Test
   override def insertMaliciousDataTest(): Unit = super.insertMaliciousDataTest()
+  @Test
+  override def selectWithoutFields(): Unit = super.selectWithoutFields()
   @Test
   override def selectEverything(): Unit = super.selectEverything()
   @Test

@@ -47,7 +47,15 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Bas
   protected def insert(table: String, fields: JsonArray, values: JsonArray) =
     Json.obj("action" -> "insert", "table" -> table, "fields" -> fields, "values" -> values)
 
-  protected def select(table: String, fields: JsonArray) = Json.obj("action" -> "select", "table" -> table, "fields" -> fields)
+  protected def select(table: String, fields: JsonArray): JsonObject = select(table, Some(fields))
+  protected def select(table: String, fields: JsonArray, conditions: JsonObject): JsonObject = select(table, Some(fields), Some(conditions))
+
+  protected def select(table: String, fields: Option[JsonArray] = None, conditions: Option[JsonObject] = None): JsonObject = {
+    val js = Json.obj("action" -> "select", "table" -> table)
+    fields.map(js.putArray("fields", _))
+    conditions.map(js.putObject("conditions", _))
+    js
+  }
 
   protected def prepared(statement: String, values: JsonArray) = Json.obj("action" -> "prepared", "statement" -> statement, "values" -> values)
 
@@ -61,7 +69,7 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Bas
   }
 
   protected def createTableStatement(tableName: String) = """
-CREATE TABLE """ + tableName + """ (
+CREATE TABLE IF NOT EXISTS """ + tableName + """ (
   id SERIAL,
   name VARCHAR(255),
   email VARCHAR(255) UNIQUE,

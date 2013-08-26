@@ -27,6 +27,8 @@ class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
   @Test
   override def insertMaliciousDataTest(): Unit = super.insertMaliciousDataTest()
   @Test
+  override def selectWithoutFields(): Unit = super.selectWithoutFields()
+  @Test
   override def selectEverything(): Unit = super.selectEverything()
   @Test
   override def selectFiltered(): Unit = super.selectFiltered()

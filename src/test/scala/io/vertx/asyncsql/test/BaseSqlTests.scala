@@ -29,7 +29,6 @@ trait BaseSqlTests { this: SqlTestVerticle =>
 
   def simpleConnection(): Unit = asyncTest {
     expectOk(raw("SELECT 0")) map { reply =>
-      assertEquals(1, reply.getNumber("rows"))
       val res = reply.getArray("results")
       assertEquals(1, res.size())
       assertEquals(0, res.get[JsonArray](0).get[Int](0))
@@ -38,7 +37,6 @@ trait BaseSqlTests { this: SqlTestVerticle =>
 
   def multipleFields(): Unit = asyncTest {
     expectOk(raw("SELECT 1, 0")) map { reply =>
-      assertEquals(1, reply.getNumber("rows"))
       val res = reply.getArray("results")
       assertEquals(1, res.size())
       val firstElem = res.get[JsonArray](0)
@@ -75,10 +73,32 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     }
   }
 
+  def selectWithoutFields(): Unit = typeTestInsert {
+    expectOk(select("some_test")) map { reply =>
+      val receivedFields = reply.getArray("fields")
+      def assertFieldName(field: String) = {
+        assertTrue("fields should contain '" + field + "'", receivedFields.contains(field))
+      }
+      assertFieldName("id")
+      assertFieldName("name")
+      assertFieldName("email")
+      assertFieldName("is_male")
+      assertFieldName("age")
+      assertFieldName("money")
+      assertFieldName("wedding_date")
+
+      val mrTest = reply.getArray("results").get[JsonArray](0)
+      assertTrue(mrTest.contains("Mr. Test"))
+      assertTrue(mrTest.contains("test@example.com"))
+      assertTrue(mrTest.contains(true))
+      assertTrue(mrTest.contains(15))
+      assertTrue(mrTest.contains(167.31))
+    }
+  }
+
   def selectEverything(): Unit = typeTestInsert {
     val fieldsArray = new JsonArray("""["name","email","is_male","age","money","wedding_date"]""")
     expectOk(select("some_test", fieldsArray)) map { reply =>
-      logger.info("reply: " + reply.encode())
       val receivedFields = reply.getArray("fields")
       assertEquals(fieldsArray, receivedFields)
       val results = reply.getArray("results")
@@ -118,7 +138,8 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     val fieldsArray = new JsonArray("""["name","email"]""")
     expectOk(select("some_test", fieldsArray)) map { reply =>
       val receivedFields = reply.getArray("fields")
-      assertEquals(fieldsArray, receivedFields)
+      assertTrue("arrays " + fieldsArray.encode() + " and " + receivedFields.encode() +
+        " should match", fieldsArray == receivedFields)
       assertEquals(2, reply.getInteger("rows"))
       val results = reply.getArray("results")
       val mrOrMrs = results.get[JsonArray](0)
@@ -151,7 +172,17 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   //    }
   //  }))
 
-  def selectWithCondition(): Unit = fail("not implemented")
+  def selectWithCondition(): Unit = typeTestInsert {
+    expectOk(select("some_test", List("email"),
+      Json.obj("$and" -> Json.arr(List(
+        Json.obj("$eq" -> Json.obj("is_male" -> "true")),
+        Json.obj("$gt" -> Json.obj("age" -> 14))))))) map { reply =>
+      val results = reply.getArray("results")
+      assertEquals(1, results.size())
+      assertEquals("test@example.com", results.get[JsonArray](0).get[String](0))
+    }
+  }
+
   def updateWithoutCondition(): Unit = fail("not implemented")
   def updateWithCondition(): Unit = fail("not implemented")
   def preparedSelect(): Unit = typeTestInsert {
