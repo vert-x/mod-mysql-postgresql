@@ -46,12 +46,6 @@ CREATE TABLE IF NOT EXISTS """ + tableName + """ (
   @Test
   override def selectFiltered(): Unit = super.selectFiltered()
   @Test
-  override def selectWithCondition(): Unit = super.selectWithCondition()
-  @Test
-  override def updateWithoutCondition(): Unit = super.updateWithoutCondition()
-  @Test
-  override def updateWithCondition(): Unit = super.updateWithCondition()
-  @Test
   override def preparedSelect(): Unit = super.preparedSelect()
   @Test
   override def transaction(): Unit = super.transaction()

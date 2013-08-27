@@ -28,6 +28,7 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)
     case "prepared" => prepared(msg.body)
+    case "transaction" => transaction(msg.body)
     case "raw" => rawCommand(msg.body.getString("command"))
   }
 
@@ -42,26 +43,19 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
     case v => escapeString(v.toString)
   }
 
-  private def parseConditions(jsObj: JsonObject): String = {
-    // FIXME parse conditions
-    "1=1"
-  }
-
-  protected def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+  protected def selectCommand(json: JsonObject): String = {
     val table = escapeField(json.getString("table"))
-    val selection = Option(json.getArray("fields")) match {
+    Option(json.getArray("fields")) match {
       case Some(fields) => fields.asScala.toStream.map(elem => escapeField(elem.toString)).mkString("SELECT ", ",", " FROM " + table)
       case None => "SELECT * FROM " + table
     }
-    val condition = Option(json.getObject("conditions")) match {
-      case Some(conditions) => " WHERE " + parseConditions(conditions)
-      case None => ""
-    }
+  }
 
-    rawCommand(selection + condition)
+  protected def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+    rawCommand(selectCommand(json))
   })
 
-  protected def insert(json: JsonObject): Future[Reply] = {
+  protected def insertCommand(json: JsonObject): String = {
     val table = json.getString("table")
     val fields = json.getArray("fields").asScala
     val lines = json.getArray("values").asScala
@@ -70,15 +64,31 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
     } yield {
       line.asInstanceOf[JsonArray].asScala.toStream.map(v => escapeValue(v)).mkString("(", ",", ")")
     }
-    val cmd = new StringBuilder("INSERT INTO ")
+    new StringBuilder("INSERT INTO ")
       .append(escapeField(table))
       .append(" ")
       .append(fields.map(f => escapeField(f.toString)).mkString("(", ",", ")"))
       .append(" VALUES ")
-      .append(listOfLines.mkString(","))
-
-    rawCommand(cmd.toString)
+      .append(listOfLines.mkString(",")).toString
   }
+
+  protected def insert(json: JsonObject): Future[Reply] = {
+    rawCommand(insertCommand(json))
+  }
+
+  protected def transaction(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+    Option(json.getArray("statements")) match {
+      case Some(statements) => rawCommand((statements.asScala.map {
+        case js: JsonObject => js.getString("action") match {
+          case "select" => selectCommand(js)
+          case "insert" => insertCommand(js)
+          case "raw" => js.getString("command")
+        }
+        case _ => throw new IllegalArgumentException("'statements' needs JsonObjects!")
+      }).mkString("BEGIN;\n", ";\n", ";\nCOMMIT;"))
+      case None => throw new IllegalArgumentException("No 'statements' field in request!")
+    }
+  })
 
   protected def prepared(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
     c.sendPreparedStatement(json.getString("statement"), json.getArray("values").toArray()) map buildResults recover {

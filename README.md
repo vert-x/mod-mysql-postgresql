@@ -62,7 +62,7 @@ If the request resulted in an error, a possible reply message looks like this:
 
     {
       "status" : "error",
-      "message" : "message":"column \"ager\" does not exist"
+      "message" : "column \"ager\" does not exist"
     }
 
 ### insert
@@ -87,16 +87,40 @@ The `select` action creates a `SELECT` statement to get a projection from a tabl
       "action" : "select",
       "table" : "some_test",
       "fields" : ["name", "email", "is_male", "age", "money", "wedding_date"], // Optional
-      "conditions" : { // Optional
-        "$and" : [
-          {
-            "is_male" : { "$eq" : true }
-          },
-          {
-            "age" : { "$gt" : 14 }
-          }
-        ]
-      }
+    }
+
+### prepared
+
+Creates a prepared statement and lets you fill the `?` with values.
+
+    {
+      "action" : "prepared",
+      "statement" : "SELECT * FROM some_test WHERE name=? AND money > ?
+    }
+
+### transaction
+
+Takes several statements and wraps them into a single transaction for the server to process. Use `statement : [...actions...]` to create such a transaction. Only `select`, `insert` and `raw` commands are allowed right now.
+
+    {
+      "action" : "transaction",
+      "statements" : [
+        {
+          "action" : "insert",
+          "table" : "account",
+          "fields" : ["name", "balance"],
+          "values" : ["Mr. Test", "0"]
+        },
+        {
+          "action" : "raw",
+          "command" : "UPDATE account SET balance=balance+? WHERE name=?",
+        },
+        {
+          "action" : "select",
+          "table" : "account",
+          "fields" : ["balance"]
+        }
+      ]
     }
 
 ### raw - Raw commands
@@ -129,21 +153,21 @@ And if you want to drop it again, you can send the following:
 
 You can always use `raw` to do anything on the database. If the statement is a query, it will return its results just like a `select`.
 
-The `select`, `insert` and following actions just for you to be able to have a cross-database application in the end. If you do not use `raw`, these commands should create the needed statements for you.
+The `select` and `insert` commands are just for you to be able to have a cross-database application in the end. If you do not use `raw`, these commands should create the needed statements for you. 
 
 * `update` - Updates rows of a table
 * `delete` - Deletes rows from a table
-* `prepared` - Create a prepared statement
 * `create` - Creates a table
 * `drop` - Drops a table
-* `transaction` - Create a transaction
 
-These actions are currently not available, but they should be implemented soon. Please see the following examples and send feedback:
+These actions are currently not available, but they should be implemented in the future. Please see the following examples and send feedback:
 
     { // UPDATE some_test SET age=age+1 WHERE id=1
       "action" : "update",
       "table" : "some_test",
-      "set" : "age=age+1",
+      "set" : {
+        "age" : {$add : 1}
+      },
       "conditions" : {
         "$eq" {
           "id" : 1
@@ -168,8 +192,6 @@ These actions are currently not available, but they should be implemented soon. 
       "values" : [true,100]
     }
 
-Not sure about the next one, since it would need quite some work and thought for the cross-database types.
-
     // CREATE TABLE some_test (
     //   id SERIAL,
     //   name VARCHAR(255),
@@ -185,14 +207,4 @@ Not sure about the next one, since it would need quite some work and thought for
     { // DROP TABLE some_test
       "action" : "drop",
       "table" : "some_test",
-    }
-
-This one should be a nice to have feature:
-
-    {
-      "action" : "transaction",
-      "statements" : [
-        { "action" : "update", "table" : "account", "set" : "money=money-50", "condition" : "id=1" },
-        { "action" : "update", "table" : "inventory", "set" : "cats=cats+1", "condition" : "account_id=1" }
-      ]
     }

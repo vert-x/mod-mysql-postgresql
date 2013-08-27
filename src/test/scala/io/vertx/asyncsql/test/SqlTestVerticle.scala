@@ -59,6 +59,8 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Bas
 
   protected def prepared(statement: String, values: JsonArray) = Json.obj("action" -> "prepared", "statement" -> statement, "values" -> values)
 
+  protected def transaction(statements: List[JsonObject]) = Json.obj("action" -> "transaction", "statements" -> Json.arr(statements))
+
   protected def createTable(tableName: String) = expectOk(raw(createTableStatement(tableName))) map { reply =>
     assertEquals(0, reply.getNumber("rows"))
     reply
@@ -69,7 +71,7 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Bas
   }
 
   protected def createTableStatement(tableName: String) = """
-CREATE TABLE IF NOT EXISTS """ + tableName + """ (
+CREATE TABLE """ + tableName + """ (
   id SERIAL,
   name VARCHAR(255),
   email VARCHAR(255) UNIQUE,

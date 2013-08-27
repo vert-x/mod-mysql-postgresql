@@ -9,11 +9,14 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   lazy val logger = getContainer().logger()
 
   def withTable[X](tableName: String)(fn: => Future[X]) = {
-    for {
+    (for {
       _ <- createTable(tableName)
       sth <- fn
       _ <- dropTable(tableName)
-    } yield sth
+    } yield sth) recoverWith {
+      case _ =>
+        dropTable(tableName)
+    }
   }
 
   def asyncTableTest[X](tableName: String)(fn: => Future[X]) = asyncTest(withTable(tableName)(fn))
@@ -154,37 +157,6 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     }
   }
 
-  // TODO make possible to query multiple tables in a single select
-  //  def selectMultipleTables(): Unit = asyncTest(withTable("some_test1")(withTable("some_test2") {
-  //    val mrTest = Json.arr(List("Mr. Test", "test@example.com", 15))
-  //    val mrsTest = Json.arr(List("Mrs. Test", "test2@example.com", 14))
-  //    val mrExample = Json.arr(List("Mr. Example", "test@example.com", 13))
-  //    for {
-  //      _ <- ebSend(insert("some_test1", Json.arr(List("name", "email", "age")), mrTest))
-  //      _ <- ebSend(insert("some_test1", Json.arr(List("name", "email", "age")), mrsTest))
-  //      _ <- ebSend(insert("some_test2", Json.arr(List("name", "email", "age")), mrExample))
-  //      reply <- ebSend(select(Json(List("some_test1", "some_test2"), Json.arr(List("some_test2.name", "some_test2.email", "some_test2.age"))))
-  //    } yield {
-  //      assertEquals("ok", reply.getString("status"))
-  //      assertEquals(2, reply.getString("status"))
-  //      val results = reply.getArray("results")
-  //      assertTrue("should contain Mr. Example", results.get[JsonArray](0).contains(mrExample))
-  //    }
-  //  }))
-
-  def selectWithCondition(): Unit = typeTestInsert {
-    expectOk(select("some_test", List("email"),
-      Json.obj("$and" -> Json.arr(List(
-        Json.obj("$eq" -> Json.obj("is_male" -> "true")),
-        Json.obj("$gt" -> Json.obj("age" -> 14))))))) map { reply =>
-      val results = reply.getArray("results")
-      assertEquals(1, results.size())
-      assertEquals("test@example.com", results.get[JsonArray](0).get[String](0))
-    }
-  }
-
-  def updateWithoutCondition(): Unit = fail("not implemented")
-  def updateWithCondition(): Unit = fail("not implemented")
   def preparedSelect(): Unit = typeTestInsert {
     expectOk(prepared("SELECT email FROM some_test WHERE name=? AND age=?", Json.arr(List("Mr. Test", 15)))) map { reply =>
       val receivedFields = reply.getArray("fields")
@@ -193,5 +165,14 @@ trait BaseSqlTests { this: SqlTestVerticle =>
       assertEquals("test@example.com", reply.getArray("results").get[JsonArray](0).get[String](0))
     }
   }
-  def transaction(): Unit = fail("not implemented")
+
+  def transaction(): Unit = typeTestInsert {
+    expectOk(transaction(
+      List(raw("INSERT INTO some_test (name, email, age, is_male, money) VALUES ('Mr. Test jr.', 'test3@example.com', 5, true, 2)"),
+        raw("SELECT SUM(age) FROM some_test WHERE is_male = true")))) map { reply =>
+      val results = reply.getArray("results")
+      assertEquals(1, results.size())
+      assertEquals(20, results.get[JsonArray](0).get[Int](0))
+    }
+  }
 }
