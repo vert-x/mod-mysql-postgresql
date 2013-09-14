@@ -57,6 +57,9 @@ dependencies {
   provided "com.foo:foo-lib:1.0.1" - if you DON'T want it to be packaged in the module zip
   */
 
+  compile "log4j:log4j:$log4jVersion"
+  compile "org.slf4j:slf4j-api:$slf4jVersion"
+
   provided "org.scala-lang:scala-library:$scalaVersion"
   provided "org.scala-lang:scala-compiler:$scalaVersion"
   provided "io.vertx:lang-scala:$scalaLangModVersion"
