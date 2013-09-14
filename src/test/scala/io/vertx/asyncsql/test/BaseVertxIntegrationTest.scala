@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.vertx.scala.core.logging.Logger
 
 trait BaseVertxIntegrationTest extends VertxExecutionContext { this: TestVerticle =>
-  var log: Logger
+  var log: Logger = null
 
   val address: String
 

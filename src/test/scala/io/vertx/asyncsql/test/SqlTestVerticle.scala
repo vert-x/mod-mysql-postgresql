@@ -19,13 +19,10 @@ import org.vertx.scala.core.logging.Logger
 
 abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
 
-  var log = {
-    println("logger initialized")
-    new Logger(getContainer().logger())
-  }
-
   override def start() = {
     initialize()
+
+    log = new Logger(getContainer().logger())
 
     log.info("starting module " + System.getProperty("vertx.modulename"))
 
