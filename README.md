@@ -102,6 +102,8 @@ Creates a prepared statement and lets you fill the `?` with values.
 
 Takes several statements and wraps them into a single transaction for the server to process. Use `statement : [...actions...]` to create such a transaction. Only `select`, `insert` and `raw` commands are allowed right now.
 
+Be aware: This is only tested and working with PostgreSQL currently.
+
     {
       "action" : "transaction",
       "statements" : [

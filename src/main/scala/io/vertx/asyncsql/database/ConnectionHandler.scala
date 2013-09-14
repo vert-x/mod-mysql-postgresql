@@ -24,6 +24,10 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   lazy val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
   lazy val logger = verticle.container.logger()
 
+  def transactionStart: String = "START TRANSACTION;"
+  def transactionEnd: String = "COMMIT;"
+  def statementDelimiter: String = ";"
+
   override def asyncReceive(msg: Message[JsonObject]) = {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)
@@ -85,7 +89,7 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
           case "raw" => js.getString("command")
         }
         case _ => throw new IllegalArgumentException("'statements' needs JsonObjects!")
-      }).mkString("BEGIN;\n", ";\n", ";\nCOMMIT;"))
+      }).mkString(transactionStart, statementDelimiter, statementDelimiter + transactionEnd))
       case None => throw new IllegalArgumentException("No 'statements' field in request!")
     }
   })

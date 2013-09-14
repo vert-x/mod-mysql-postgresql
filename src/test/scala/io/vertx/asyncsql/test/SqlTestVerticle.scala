@@ -38,7 +38,9 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Bas
     })
   }
 
-  def before(): Future[_] = Future.successful()
+  def before(): Future[_] = {
+    Future.successful()
+  }
 
   def getConfig(): JsonObject = Json.emptyObj()
 
@@ -71,6 +73,7 @@ abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with Bas
   }
 
   protected def createTableStatement(tableName: String) = """
+DROP TABLE IF EXISTS """ + tableName + """;
 CREATE TABLE """ + tableName + """ (
   id SERIAL,
   name VARCHAR(255),
