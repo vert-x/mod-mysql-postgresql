@@ -5,11 +5,13 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 ## Requirements
 
 * Vert.x 2.0+
-* Current mod-lang-scala commit (https://github.com/vert-x/mod-lang-scala/tree/b3918f28ef50de33102a0453475e8c9d9b760526)
+* A working PostgreSQL or MySQL server
+* For testing PostgreSQL: A 'testdb' database on a local PostgreSQL install and a user called 'vertx'
+* For testing MySQL: A 'testdb' database on a local MySQL install and a user called 'root'
 
 ## Installation
 
-`vertx install io.vertx.mod-mysql-postgresql`
+`vertx install io.vertx~mysql-postgresql~0.1.0-SNAPSHOT`
 
 ## Configuration
 
