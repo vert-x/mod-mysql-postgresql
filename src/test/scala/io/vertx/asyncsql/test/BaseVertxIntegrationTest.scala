@@ -9,9 +9,10 @@ import org.vertx.testtools.VertxAssert._
 import io.vertx.helpers.VertxExecutionContext
 import org.vertx.scala.core.eventbus.Message
 import java.util.concurrent.atomic.AtomicInteger
+import org.vertx.scala.core.logging.Logger
 
 trait BaseVertxIntegrationTest extends VertxExecutionContext { this: TestVerticle =>
-  lazy val log = getContainer().logger()
+  var log: Logger
 
   val address: String
 

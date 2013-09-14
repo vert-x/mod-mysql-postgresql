@@ -15,8 +15,14 @@ import org.vertx.scala.core.eventbus.Message
 import org.vertx.scala.core.Vertx
 import io.vertx.helpers.VertxScalaHelpers
 import org.vertx.scala.core.json._
+import org.vertx.scala.core.logging.Logger
 
 abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
+
+  var log = {
+    println("logger initialized")
+    new Logger(getContainer().logger())
+  }
 
   override def start() = {
     initialize()

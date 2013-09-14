@@ -16,13 +16,14 @@ import com.github.mauricio.async.db.RowData
 import collection.JavaConverters._
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import org.vertx.scala.core.json._
+import org.vertx.scala.core.logging.Logger
 
 trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   val verticle: Verticle
   def dbType: String
   val config: Configuration
-  lazy val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
-  lazy val logger = verticle.container.logger()
+  val logger: Logger // = verticle.container.logger()
+  val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
 
   def transactionStart: String = "START TRANSACTION;"
   def transactionEnd: String = "COMMIT;"

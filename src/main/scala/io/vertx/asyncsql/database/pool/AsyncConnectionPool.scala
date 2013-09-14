@@ -47,7 +47,6 @@ trait AsyncConnectionPool[ConnType <: Connection] {
 object AsyncConnectionPool {
 
   def apply(vertx: Vertx, dbType: String, config: Configuration) = {
-    println("got db type: " + dbType)
     dbType match {
       case "postgresql" =>
         new PostgreSqlAsyncConnectionPool(
