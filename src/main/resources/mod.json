@@ -11,5 +11,5 @@
   // Optional fields
   //"developers": ["Other Dev 1", "Other Dev 2"],
   "keywords": ["db", "database", "mysql", "postgresql"],
-  "homepage": "https://github.com/campudus/vertx-mysql-postgresql"
+  "homepage": "https://github.com/vert-x/mod-mysql-postgresql"
 }
