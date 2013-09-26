@@ -29,12 +29,13 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   def transactionEnd: String = "COMMIT;"
   def statementDelimiter: String = ";"
 
+  import org.vertx.scala.core.eventbus._
   override def asyncReceive(msg: Message[JsonObject]) = {
-    case "select" => select(msg.body)
-    case "insert" => insert(msg.body)
-    case "prepared" => prepared(msg.body)
-    case "transaction" => transaction(msg.body)
-    case "raw" => rawCommand(msg.body.getString("command"))
+    case "select" => select(msg.body.asInstanceOf[JsonObject])
+    case "insert" => insert(msg.body.asInstanceOf[JsonObject])
+    case "prepared" => prepared(msg.body.asInstanceOf[JsonObject])
+    case "transaction" => transaction(msg.body.asInstanceOf[JsonObject])
+    case "raw" => rawCommand(msg.body.asInstanceOf[JsonObject].getString("command"))
   }
 
   def close() = pool.close

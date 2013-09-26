@@ -4,9 +4,10 @@ import scala.concurrent.Future
 import org.vertx.scala.core.json.JsonArray
 import org.vertx.testtools.VertxAssert._
 import org.vertx.scala.core.json.Json
+import org.vertx.scala.core.logging.Logger
 
 trait BaseSqlTests { this: SqlTestVerticle =>
-  lazy val logger = getContainer().logger()
+  lazy val logger = new Logger(container.logger())
 
   def withTable[X](tableName: String)(fn: => Future[X]) = {
     (for {

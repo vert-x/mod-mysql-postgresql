@@ -2,12 +2,9 @@ package io.vertx.asyncsql.test
 
 import io.vertx.helpers.VertxExecutionContext
 import scala.concurrent.Future
-import org.vertx.java.core.Handler
-import org.vertx.java.core.AsyncResult
 import org.vertx.testtools.VertxAssert._
 import org.vertx.scala.platform.Verticle
 import org.junit.runner.RunWith
-import org.vertx.testtools.JavaClassRunner
 import java.lang.reflect.InvocationTargetException
 import org.vertx.java.core.logging.impl.LoggerFactory
 import scala.concurrent.Promise
@@ -16,32 +13,29 @@ import org.vertx.scala.core.Vertx
 import io.vertx.helpers.VertxScalaHelpers
 import org.vertx.scala.core.json._
 import org.vertx.scala.core.logging.Logger
+import org.vertx.scala.testtools.TestVerticle
+import org.vertx.scala.core.AsyncResult
 
-abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
+abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
 
-  override def start() = {
-    initialize()
+  override final def before() {}
+  override def asyncBefore(): Future[Unit] = {
+    val p = Promise[Unit]
+    container.deployModule(System.getProperty("vertx.modulename"), getConfig(), 1, { deploymentID: AsyncResult[String] =>
+      if (deploymentID.failed()) {
+        log.info(deploymentID.cause())
+      }
+      assertTrue("deploymentID should not be null", deploymentID.succeeded())
 
-    log = new Logger(getContainer().logger())
-
-    log.info("starting module " + System.getProperty("vertx.modulename"))
-
-    container.deployModule(System.getProperty("vertx.modulename"), getConfig(), new Handler[AsyncResult[String]]() {
-      override def handle(deploymentID: AsyncResult[String]) = {
-        if (deploymentID.failed()) {
-          log.info(deploymentID.cause())
-        }
-        assertTrue("deploymentID should not be null", deploymentID.succeeded())
-
-        before() map { _ =>
-          log.info("starting tests")
-          startTests()
-        }
+      doBefore() map { _ =>
+        log.info("starting tests")
+        p.success()
       }
     })
+    p.future
   }
 
-  def before(): Future[_] = {
+  def doBefore(): Future[_] = {
     Future.successful()
   }
 

@@ -11,7 +11,7 @@ import io.vertx.asyncsql.messages.MessageHelper
 trait ScalaBusMod extends MessageHelper with VertxExecutionContext with (Message[JsonObject] => Unit) {
 
   override def apply(msg: Message[JsonObject]) = {
-    val action = msg.body.getString("action")
+    val action = msg.body.asInstanceOf[JsonObject].getString("action")
 
     val fut: Future[Reply] = try {
       if (receive(msg).isDefinedAt(action)) {

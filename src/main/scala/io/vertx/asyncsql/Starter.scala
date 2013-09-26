@@ -28,7 +28,7 @@ class Starter extends Verticle {
         case "postgresql" => new PostgreSqlConnectionHandler(this, configuration)
         case "mysql" => new MySqlConnectionHandler(this, configuration)
       }
-      vertx.eventBus.registerHandler(address)(handler)
+      vertx.eventBus.registerHandler(address, handler)
 
       logger.error("Async database module for MySQL and PostgreSQL started with config " + configuration)
 

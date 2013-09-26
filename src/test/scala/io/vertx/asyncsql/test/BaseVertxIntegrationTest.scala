@@ -1,17 +1,17 @@
 package io.vertx.asyncsql.test
 
-import org.vertx.java.core.json.JsonObject
+import org.vertx.scala.core.json.JsonObject
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import org.vertx.scala.core.Vertx
-import org.vertx.testtools.TestVerticle
+import org.vertx.scala.testtools.TestVerticle
 import org.vertx.testtools.VertxAssert._
 import io.vertx.helpers.VertxExecutionContext
 import org.vertx.scala.core.eventbus.Message
 import java.util.concurrent.atomic.AtomicInteger
 import org.vertx.scala.core.logging.Logger
 
-trait BaseVertxIntegrationTest extends VertxExecutionContext { this: TestVerticle =>
+trait BaseVertxIntegrationTest { this: TestVerticle =>
   var log: Logger = null
 
   val address: String
@@ -29,10 +29,10 @@ trait BaseVertxIntegrationTest extends VertxExecutionContext { this: TestVerticl
   protected def ebSend(q: JsonObject): Future[JsonObject] = {
     val p = Promise[JsonObject]
     log.info("sending " + q.encode() + " to " + address)
-    Vertx(getVertx()).eventBus.send(address, q) { reply: Message[JsonObject] =>
-      log.info("got a reply: " + reply.body.encode())
-      p.success(reply.body)
-    }
+    vertx.eventBus.send(address, q, { reply: Message[JsonObject] =>
+      log.info("got a reply: " + reply.body.asInstanceOf[JsonObject].encode())
+      p.success(reply.body.asInstanceOf[JsonObject])
+    })
     p.future
   }
 
