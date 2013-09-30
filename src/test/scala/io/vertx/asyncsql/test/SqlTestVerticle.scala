@@ -1,41 +1,45 @@
 package io.vertx.asyncsql.test
 
-import io.vertx.helpers.VertxExecutionContext
-import scala.concurrent.Future
-import org.vertx.testtools.VertxAssert._
-import org.vertx.scala.platform.Verticle
-import org.junit.runner.RunWith
-import java.lang.reflect.InvocationTargetException
-import org.vertx.java.core.logging.impl.LoggerFactory
-import scala.concurrent.Promise
-import org.vertx.scala.core.eventbus.Message
-import org.vertx.scala.core.Vertx
-import io.vertx.helpers.VertxScalaHelpers
-import org.vertx.scala.core.json._
-import org.vertx.scala.core.logging.Logger
-import org.vertx.scala.testtools.TestVerticle
+import scala.concurrent.{ Future, Promise }
+import scala.util.{ Failure, Success }
+
 import org.vertx.scala.core.AsyncResult
+import org.vertx.scala.core.json.{ Json, JsonArray, JsonObject }
+import org.vertx.scala.testtools.TestVerticle
+import org.vertx.testtools.VertxAssert.{ assertEquals, assertTrue }
+
+import io.vertx.helpers.VertxScalaHelpers
 
 abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
 
   override final def before() {}
   override def asyncBefore(): Future[Unit] = {
     val p = Promise[Unit]
+    println("DEPLOYING !!!")
     container.deployModule(System.getProperty("vertx.modulename"), getConfig(), 1, { deploymentID: AsyncResult[String] =>
+      println("deployed? " + deploymentID.succeeded())
       if (deploymentID.failed()) {
-        log.info(deploymentID.cause())
+        logger.info(deploymentID.cause())
+        p.failure(deploymentID.cause())
       }
       assertTrue("deploymentID should not be null", deploymentID.succeeded())
 
-      doBefore() map { _ =>
-        log.info("starting tests")
-        p.success()
+      before()
+      doBefore() onComplete {
+        case Success(_) =>
+          logger.info("starting tests")
+          println("should start tests now...")
+          p.success()
+        case Failure(ex) => p.failure(ex)
       }
+      println("async doBefore() started")
     })
     p.future
   }
 
   def doBefore(): Future[_] = {
+    println("in doBefore()")
+
     Future.successful()
   }
 

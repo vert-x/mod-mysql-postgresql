@@ -1,19 +1,19 @@
 package io.vertx.asyncsql
 
-import io.vertx.helpers.Verticle
+import scala.concurrent.Promise
+
+import org.vertx.scala.core.json.{ Json, JsonObject }
+import org.vertx.scala.platform.Verticle
+
 import com.github.mauricio.async.db.Configuration
-import org.vertx.scala.core.eventbus.EventBus._
-import org.vertx.scala.core.json._
-import io.vertx.asyncsql.database.ConnectionHandler
-import io.vertx.asyncsql.database.MySqlConnectionHandler
-import io.vertx.asyncsql.database.PostgreSqlConnectionHandler
-import org.vertx.scala.core.Future
+
+import io.vertx.asyncsql.database.{ ConnectionHandler, MySqlConnectionHandler, PostgreSqlConnectionHandler }
 
 class Starter extends Verticle {
 
   var handler: ConnectionHandler = null
 
-  override def start(startedResult: org.vertx.scala.core.Future[Void]) = {
+  override def start(startedResult: Promise[Unit]) = {
 
     logger.error("Starting async database module for MySQL and PostgreSQL.")
 
@@ -32,11 +32,11 @@ class Starter extends Verticle {
 
       logger.error("Async database module for MySQL and PostgreSQL started with config " + configuration)
 
-      startedResult.setResult(null)
+      startedResult.success()
     } catch {
       case ex: Throwable =>
         logger.fatal("could not start async database module!", ex)
-        startedResult.setFailure(ex)
+        startedResult.failure(ex)
     }
   }
 

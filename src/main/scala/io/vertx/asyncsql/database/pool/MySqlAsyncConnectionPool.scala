@@ -1,14 +1,11 @@
 package io.vertx.asyncsql.database.pool
 
-import com.github.mauricio.async.db.Configuration
-import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
-import io.vertx.helpers.VertxExecutionContext
-import com.github.mauricio.async.db.Connection
-import org.vertx.java.core.impl.EventLoopContext
-import io.netty.channel.EventLoop
+import scala.concurrent.{ ExecutionContext, Future }
+import com.github.mauricio.async.db.{ Configuration, Connection }
 import com.github.mauricio.async.db.mysql.MySQLConnection
+import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
+import io.netty.channel.EventLoop
+import org.vertx.scala.core.VertxExecutionContext
 
 class MySqlAsyncConnectionPool(config: Configuration, eventLoop: EventLoop, implicit val executionContext: ExecutionContext = VertxExecutionContext) extends AsyncConnectionPool[PostgreSQLConnection] {
 
