@@ -1,12 +1,12 @@
 package io.vertx.asyncsql.test
 
-import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.concurrent.Future
-
-import org.vertx.scala.core.json.{Json, JsonArray}
-import org.vertx.testtools.VertxAssert.{assertEquals, assertTrue}
+import org.vertx.scala.core.json.JsonArray
+import org.vertx.testtools.VertxAssert._
+import org.vertx.scala.core.json.Json
 
 trait BaseSqlTests { this: SqlTestVerticle =>
+  lazy val logger = getContainer().logger()
 
   def withTable[X](tableName: String)(fn: => Future[X]) = {
     (for {
@@ -152,7 +152,7 @@ trait BaseSqlTests { this: SqlTestVerticle =>
       val receivedFields = reply.getArray("fields")
       assertTrue("arrays " + fieldsArray.encode() + " and " + receivedFields.encode() +
         " should match", fieldsArray == receivedFields)
-      //      assertEquals(2, reply.getInteger("rows"))
+//      assertEquals(2, reply.getInteger("rows"))
       val results = reply.getArray("results")
       val mrOrMrs = results.get[JsonArray](0)
       mrOrMrs.get[String](0) match {
@@ -170,7 +170,7 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     expectOk(prepared("SELECT email FROM some_test WHERE name=? AND age=?", Json.arr(List("Mr. Test", 15)))) map { reply =>
       val receivedFields = reply.getArray("fields")
       assertEquals(Json.arr(List("email")), receivedFields)
-      //      assertEquals(1, reply.getInteger("rows"))
+//      assertEquals(1, reply.getInteger("rows"))
       assertEquals("test@example.com", reply.getArray("results").get[JsonArray](0).get[String](0))
     }
   }

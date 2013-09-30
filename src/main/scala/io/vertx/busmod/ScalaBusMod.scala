@@ -2,10 +2,10 @@ package io.vertx.busmod
 
 import scala.concurrent.Future
 
-import org.vertx.scala.core.VertxExecutionContext
-import org.vertx.scala.core.eventbus.{ JsonObjectData, Message }
-import org.vertx.scala.core.json.{ Json, JsonObject }
+import org.vertx.scala.core.json._
+import org.vertx.scala.core.eventbus.Message
 
+import io.vertx.helpers.VertxExecutionContext
 import io.vertx.asyncsql.messages.MessageHelper
 
 trait ScalaBusMod extends MessageHelper with VertxExecutionContext with (Message[JsonObject] => Unit) {

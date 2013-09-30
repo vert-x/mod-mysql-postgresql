@@ -1,45 +1,47 @@
 package io.vertx.asyncsql.test
 
-import scala.concurrent.{ Future, Promise }
-import scala.util.{ Failure, Success }
-
-import org.vertx.scala.core.AsyncResult
-import org.vertx.scala.core.json.{ Json, JsonArray, JsonObject }
-import org.vertx.scala.testtools.TestVerticle
-import org.vertx.testtools.VertxAssert.{ assertEquals, assertTrue }
-
+import io.vertx.helpers.VertxExecutionContext
+import scala.concurrent.Future
+import org.vertx.java.core.Handler
+import org.vertx.java.core.AsyncResult
+import org.vertx.testtools.VertxAssert._
+import org.vertx.scala.platform.Verticle
+import org.junit.runner.RunWith
+import org.vertx.testtools.JavaClassRunner
+import java.lang.reflect.InvocationTargetException
+import org.vertx.java.core.logging.impl.LoggerFactory
+import scala.concurrent.Promise
+import org.vertx.scala.core.eventbus.Message
+import org.vertx.scala.core.Vertx
 import io.vertx.helpers.VertxScalaHelpers
+import org.vertx.scala.core.json._
+import org.vertx.scala.core.logging.Logger
 
-abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
+abstract class SqlTestVerticle extends org.vertx.testtools.TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
 
-  override final def before() {}
-  override def asyncBefore(): Future[Unit] = {
-    val p = Promise[Unit]
-    println("DEPLOYING !!!")
-    container.deployModule(System.getProperty("vertx.modulename"), getConfig(), 1, { deploymentID: AsyncResult[String] =>
-      println("deployed? " + deploymentID.succeeded())
-      if (deploymentID.failed()) {
-        logger.info(deploymentID.cause())
-        p.failure(deploymentID.cause())
+  override def start() = {
+    initialize()
+
+    log = new Logger(getContainer().logger())
+
+    log.info("starting module " + System.getProperty("vertx.modulename"))
+
+    container.deployModule(System.getProperty("vertx.modulename"), getConfig(), new Handler[AsyncResult[String]]() {
+      override def handle(deploymentID: AsyncResult[String]) = {
+        if (deploymentID.failed()) {
+          log.info(deploymentID.cause())
+        }
+        assertTrue("deploymentID should not be null", deploymentID.succeeded())
+
+        before() map { _ =>
+          log.info("starting tests")
+          startTests()
+        }
       }
-      assertTrue("deploymentID should not be null", deploymentID.succeeded())
-
-      before()
-      doBefore() onComplete {
-        case Success(_) =>
-          logger.info("starting tests")
-          println("should start tests now...")
-          p.success()
-        case Failure(ex) => p.failure(ex)
-      }
-      println("async doBefore() started")
     })
-    p.future
   }
 
-  def doBefore(): Future[_] = {
-    println("in doBefore()")
-
+  def before(): Future[_] = {
     Future.successful()
   }
 

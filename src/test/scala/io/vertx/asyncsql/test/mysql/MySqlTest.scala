@@ -10,7 +10,7 @@ class MySqlTest extends SqlTestVerticle with BaseSqlTests {
   val address = "campudus.asyncdb"
   val config = Json.obj("address" -> address, "connection" -> "MySQL")
 
-  override def doBefore() = expectOk(raw("DROP TABLE IF EXISTS `some_test`"))
+  override def before() = expectOk(raw("DROP TABLE IF EXISTS `some_test`"))
   override def getConfig = config
 
   override def createTableStatement(tableName: String) = """

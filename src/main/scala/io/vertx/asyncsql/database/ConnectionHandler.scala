@@ -1,32 +1,34 @@
 package io.vertx.asyncsql.database
 
-import scala.collection.JavaConverters.iterableAsScalaIterableConverter
-import scala.concurrent.Future
-
 import org.vertx.scala.core.eventbus.Message
-import org.vertx.scala.core.json.{ JsonArray, JsonObject }
-import org.vertx.scala.core.logging.Logger
-import org.vertx.scala.platform.Verticle
-
-import com.github.mauricio.async.db.{ Configuration, Connection, QueryResult, RowData }
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-
-import io.vertx.asyncsql.database.pool.AsyncConnectionPool
+import com.github.mauricio.async.db.Configuration
+import io.vertx.asyncsql.database.pool.PostgreSqlAsyncConnectionPool
+import io.vertx.helpers.VertxExecutionContext
+import com.github.mauricio.async.db.Connection
 import io.vertx.busmod.ScalaBusMod
+import scala.concurrent.Future
+import io.vertx.asyncsql.database.pool.AsyncConnectionPool
+import org.vertx.scala.core.Vertx
+import io.vertx.helpers.Verticle
+import com.github.mauricio.async.db.QueryResult
 import io.vertx.helpers.VertxScalaHelpers
+import com.github.mauricio.async.db.RowData
+import collection.JavaConverters._
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
+import org.vertx.scala.core.json._
+import org.vertx.scala.core.logging.Logger
 
 trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   val verticle: Verticle
   def dbType: String
   val config: Configuration
-  lazy val logger: Logger = verticle.logger
+  val logger: Logger // = verticle.container.logger()
   val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
 
   def transactionStart: String = "START TRANSACTION;"
   def transactionEnd: String = "COMMIT;"
   def statementDelimiter: String = ";"
 
-  import org.vertx.scala.core.eventbus._
   override def asyncReceive(msg: Message[JsonObject]) = {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)

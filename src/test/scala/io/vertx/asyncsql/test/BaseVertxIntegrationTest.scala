@@ -1,20 +1,25 @@
 package io.vertx.asyncsql.test
 
-import scala.concurrent.{ Future, Promise }
-
+import org.vertx.java.core.json.JsonObject
+import scala.concurrent.Future
+import scala.concurrent.Promise
+import org.vertx.scala.core.Vertx
+import org.vertx.testtools.TestVerticle
+import org.vertx.testtools.VertxAssert._
+import io.vertx.helpers.VertxExecutionContext
 import org.vertx.scala.core.eventbus.Message
-import org.vertx.scala.core.json.JsonObject
+import java.util.concurrent.atomic.AtomicInteger
 import org.vertx.scala.core.logging.Logger
-import org.vertx.scala.testtools.TestVerticle
-import org.vertx.testtools.VertxAssert.{ assertEquals, fail, testComplete }
 
-trait BaseVertxIntegrationTest { this: TestVerticle =>
+trait BaseVertxIntegrationTest extends VertxExecutionContext { this: TestVerticle =>
+  var log: Logger = null
+
   val address: String
 
   protected def asyncTest[X](fn: => Future[X]): Future[Unit] = {
     fn recover {
       case x =>
-        logger.error("async fail in test code!", x)
+        log.error("async fail in test code!", x)
         fail("Something failed asynchronously: " + x.getClass() + x.getMessage())
     } map { _ =>
       testComplete
@@ -23,11 +28,11 @@ trait BaseVertxIntegrationTest { this: TestVerticle =>
 
   protected def ebSend(q: JsonObject): Future[JsonObject] = {
     val p = Promise[JsonObject]
-    logger.info("sending " + q.encode() + " to " + address)
-    vertx.eventBus.send(address, q, { reply: Message[JsonObject] =>
-      logger.info("got a reply: " + reply.body.asInstanceOf[JsonObject].encode())
-      p.success(reply.body.asInstanceOf[JsonObject])
-    })
+    log.info("sending " + q.encode() + " to " + address)
+    Vertx(getVertx()).eventBus.send(address, q) { reply: Message[JsonObject] =>
+      log.info("got a reply: " + reply.body.encode())
+      p.success(reply.body)
+    }
     p.future
   }
 

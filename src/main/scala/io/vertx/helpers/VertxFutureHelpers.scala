@@ -1,7 +1,13 @@
 package io.vertx.helpers
 
-import scala.concurrent.Promise
-import org.vertx.scala.platform.Verticle
+import java.net.URI
+import scala.concurrent.{ Future, Promise }
+import org.vertx.java.core.AsyncResult
+import org.vertx.java.core.buffer.Buffer
+import org.vertx.java.core.eventbus.Message
+import org.vertx.java.core.file.AsyncFile
+import org.vertx.java.core.http.HttpClientResponse
+import org.vertx.java.core.json.JsonObject
 
 trait VertxFutureHelpers extends VertxScalaHelpers {
   this: Verticle =>
