@@ -10,14 +10,18 @@ import org.vertx.testtools.VertxAssert.{ assertEquals, fail, testComplete }
 
 trait BaseVertxIntegrationTest { this: TestVerticle =>
   val address: String
+  type not[T] = T => Nothing
 
   protected def asyncTest[X](fn: => Future[X]): Future[Unit] = {
     fn recover {
       case x =>
         logger.error("async fail in test code!", x)
         fail("Something failed asynchronously: " + x.getClass() + x.getMessage())
-    } map { _ =>
-      testComplete
+    } map {
+      case f: Future[_] =>
+        logger.warn("test code most likely wrong! returns Future[Future[_]]")
+        testComplete
+      case _ => testComplete
     }
   }
 

@@ -39,6 +39,8 @@ trait AsyncConnectionPool[ConnType <: Connection] {
           giveBack(c)
           p.failure(ex)
       }
+    } recover {
+      case ex => p.failure(ex)
     }
     p.future
   }
