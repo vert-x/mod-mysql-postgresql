@@ -62,7 +62,7 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
 
   protected def prepared(statement: String, values: JsonArray) = Json.obj("action" -> "prepared", "statement" -> statement, "values" -> values)
 
-  protected def transaction(statements: List[JsonObject]) = Json.obj("action" -> "transaction", "statements" -> Json.arr(statements))
+  protected def transaction(statements: JsonObject*) = Json.obj("action" -> "transaction", "statements" -> Json.arr(statements: _*))
 
   protected def createTable(tableName: String) = expectOk(raw(createTableStatement(tableName))) map { reply =>
     assertEquals(0, reply.getNumber("rows"))

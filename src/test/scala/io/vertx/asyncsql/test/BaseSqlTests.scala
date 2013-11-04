@@ -3,8 +3,8 @@ package io.vertx.asyncsql.test
 import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.concurrent.Future
 
-import org.vertx.scala.core.json.{Json, JsonArray}
-import org.vertx.testtools.VertxAssert.{assertEquals, assertTrue}
+import org.vertx.scala.core.json.{ Json, JsonArray }
+import org.vertx.testtools.VertxAssert.{ assertEquals, assertTrue }
 
 trait BaseSqlTests { this: SqlTestVerticle =>
 
@@ -102,7 +102,7 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   }
 
   def selectEverything(): Unit = typeTestInsert {
-    val fieldsArray = Json.arr(List("name", "email", "is_male", "age", "money", "wedding_date"))
+    val fieldsArray = Json.arr("name", "email", "is_male", "age", "money", "wedding_date")
     expectOk(select("some_test", fieldsArray)) map { reply =>
       val receivedFields = reply.getArray("fields")
       logger.info("received: " + receivedFields.encode())
@@ -167,21 +167,24 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   }
 
   def preparedSelect(): Unit = typeTestInsert {
-    expectOk(prepared("SELECT email FROM some_test WHERE name=? AND age=?", Json.arr(List("Mr. Test", 15)))) map { reply =>
+    expectOk(prepared("SELECT email FROM some_test WHERE name=? AND age=?", Json.arr("Mr. Test", 15))) map { reply =>
       val receivedFields = reply.getArray("fields")
-      assertEquals(Json.arr(List("email")), receivedFields)
+      assertEquals(Json.arr("email"), receivedFields)
       //      assertEquals(1, reply.getInteger("rows"))
       assertEquals("test@example.com", reply.getArray("results").get[JsonArray](0).get[String](0))
     }
   }
 
   def transaction(): Unit = typeTestInsert {
-    expectOk(transaction(
-      List(insert("some_test", List("name", "email", "is_male", "age", "money"), Json.arr(List(Json.arr(List("Mr. Test jr.", "test3@example.com", true, 5, 2))))),
-        raw("SELECT SUM(age) FROM some_test WHERE is_male = true")))) map { reply =>
-      val results = reply.getArray("results")
-      assertEquals(1, results.size())
-      assertEquals(20, results.get[JsonArray](0).get[Int](0))
-    }
+    expectOk(
+      transaction(
+        insert("some_test", Json.arr("name", "email", "is_male", "age", "money"),
+          Json.arr(Json.arr("Mr. Test jr.", "test3@example.com", true, 5, 2))),
+        raw("SELECT SUM(age) FROM some_test WHERE is_male = true")))
+      .map { reply =>
+        val results = reply.getArray("results")
+        assertEquals(1, results.size())
+        assertEquals(20, results.get[JsonArray](0).get[Int](0))
+      }
   }
 }

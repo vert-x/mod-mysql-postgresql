@@ -2,18 +2,16 @@ package io.vertx.asyncsql.database
 
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.concurrent.Future
-
 import org.vertx.scala.core.eventbus.Message
 import org.vertx.scala.core.json.{ JsonArray, JsonObject }
 import org.vertx.scala.core.logging.Logger
 import org.vertx.scala.platform.Verticle
-
 import com.github.mauricio.async.db.{ Configuration, Connection, QueryResult, RowData }
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-
 import io.vertx.asyncsql.database.pool.AsyncConnectionPool
 import io.vertx.busmod.ScalaBusMod
 import io.vertx.helpers.VertxScalaHelpers
+import org.vertx.scala.core.json.Json
 
 trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   val verticle: Verticle
@@ -80,13 +78,15 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   }
 
   protected def transaction(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+    logger.info("TRANSACTION-JSON: " + json.encodePrettily())
     Option(json.getArray("statements")) match {
       case Some(statements) => rawCommand((statements.asScala.map {
-        case js: JsonObject => js.getString("action") match {
-          case "select" => selectCommand(js)
-          case "insert" => insertCommand(js)
-          case "raw" => js.getString("command")
-        }
+        case js: JsonObject =>
+          js.getString("action") match {
+            case "select" => selectCommand(js)
+            case "insert" => insertCommand(js)
+            case "raw" => js.getString("command")
+          }
         case _ => throw new IllegalArgumentException("'statements' needs JsonObjects!")
       }).mkString(transactionStart, statementDelimiter, statementDelimiter + transactionEnd))
       case None => throw new IllegalArgumentException("No 'statements' field in request!")
@@ -133,5 +133,5 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
     Ok(result)
   }
 
-  private def rowDataToJsonArray(rowData: RowData): JsonArray = rowData.toList
+  private def rowDataToJsonArray(rowData: RowData): JsonArray = Json.arr(rowData.toList: _*)
 }

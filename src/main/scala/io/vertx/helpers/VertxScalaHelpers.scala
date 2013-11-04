@@ -25,10 +25,6 @@ trait VertxScalaHelpers {
   def tryOp[T](f: => T): Option[T] = try { Some(f) } catch { case _: Throwable => None }
   def toInt(s: String): Option[Int] = tryOp(s.toInt)
 
-  implicit def listToJsonArray[X](list: List[X]): JsonArray = {
-    Json.arr(list)
-  }
-
 }
 
 object VertxScalaHelpers extends VertxScalaHelpers
