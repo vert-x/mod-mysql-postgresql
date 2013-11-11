@@ -4,7 +4,7 @@ import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.concurrent.Future
 
 import org.vertx.scala.core.json.{ Json, JsonArray }
-import org.vertx.testtools.VertxAssert.{ assertEquals, assertTrue }
+import org.vertx.testtools.VertxAssert._
 
 trait BaseSqlTests { this: SqlTestVerticle =>
 
@@ -39,12 +39,30 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   }
 
   def multipleFields(): Unit = asyncTest {
-    expectOk(raw("SELECT 1, 0")) map { reply =>
+    expectOk(raw("SELECT 1 a, 0 b")) map { reply =>
       val res = reply.getArray("results")
       assertEquals(1, res.size())
       val firstElem = res.get[JsonArray](0)
       assertEquals(1, firstElem.get[Integer](0))
       assertEquals(0, firstElem.get[Integer](1))
+    }
+  }
+
+  def multipleFieldsOrder(): Unit = typeTestInsert {
+    import scala.collection.JavaConverters._
+    expectOk(raw("SELECT is_male, age, email, money, name FROM some_test WHERE is_male = true")) map { reply =>
+      val receivedFields = reply.getArray("fields")
+      val results = reply.getArray("results").get[JsonArray](0)
+
+      assertEquals(1, reply.getNumber("rows"))
+
+      val columnNamesList = receivedFields.asScala.toList
+
+      assertEquals("Mr. Test", results.get(columnNamesList.indexOf("name")))
+      assertEquals("test@example.com", results.get(columnNamesList.indexOf("email")))
+      assertEquals(15, results.get(columnNamesList.indexOf("age")))
+      assertEquals(true, results.get(columnNamesList.indexOf("is_male")))
+      assertEquals(167.31,  results.get(columnNamesList.indexOf("money")), 0.1)
     }
   }
 

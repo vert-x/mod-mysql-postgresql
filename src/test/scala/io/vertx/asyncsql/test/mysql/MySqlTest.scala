@@ -31,6 +31,8 @@ CREATE TABLE """ + tableName + """ (
   @Test
   override def multipleFields(): Unit = super.multipleFields()
   @Test
+  override def multipleFieldsOrder(): Unit = super.multipleFieldsOrder()
+  @Test
   override def createAndDropTable(): Unit = super.createAndDropTable()
   @Test
   override def insertCorrect(): Unit = super.insertCorrect()
@@ -49,8 +51,8 @@ CREATE TABLE """ + tableName + """ (
   @Test
   override def preparedSelect(): Unit = super.preparedSelect()
 
-//  @Ignore("not working currently")
-//  @Test
-//  override def transaction(): Unit = super.transaction()
+  //  @Ignore("not working currently")
+  //  @Test
+  //  override def transaction(): Unit = super.transaction()
 
 }

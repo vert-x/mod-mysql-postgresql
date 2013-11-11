@@ -122,9 +122,15 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
         val fields = (new JsonArray() /: resultSet.columnNames) { (arr, name) =>
           arr.addString(name)
         }
-        val rows = (new JsonArray() /: resultSet) { (arr, rowData) =>
-          arr.add(rowDataToJsonArray(rowData))
-        }
+
+        val rows = Json.arr((for {
+          rowData <- resultSet
+        } yield Json.arr((for {
+          columnName <- resultSet.columnNames
+        } yield {
+          rowData(columnName)
+        }): _*)): _*)
+
         result.putArray("fields", fields)
         result.putArray("results", rows)
       case None =>
@@ -132,6 +138,4 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
 
     Ok(result)
   }
-
-  private def rowDataToJsonArray(rowData: RowData): JsonArray = Json.arr(rowData.toList: _*)
 }

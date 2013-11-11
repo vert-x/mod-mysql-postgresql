@@ -17,6 +17,8 @@ class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
   @Test
   override def multipleFields(): Unit = super.multipleFields()
   @Test
+  override def multipleFieldsOrder(): Unit = super.multipleFieldsOrder()
+  @Test
   override def createAndDropTable(): Unit = super.createAndDropTable()
   @Test
   override def insertCorrect(): Unit = super.insertCorrect()
