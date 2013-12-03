@@ -99,7 +99,6 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
         val f = (futures.foldLeft(Future[Any]()) { case (f, cmd) => f flatMap (_ => cmd.query(conn)) })
         f map (_ => Ok(Json.obj()))
       }
-      //.mkString(transactionStart, statementDelimiter, statementDelimiter + transactionEnd))
       case None => throw new IllegalArgumentException("No 'statements' field in request!")
     }
   })

@@ -128,13 +128,9 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     val fieldsArray = Json.arr("name", "email", "is_male", "age", "money", "wedding_date")
     expectOk(select("some_test", fieldsArray)) map { reply =>
       val receivedFields = reply.getArray("fields")
-      logger.info("received: " + receivedFields.encode())
-      logger.info("fieldsAr: " + fieldsArray.encode())
       checkSameFields(fieldsArray, receivedFields)
-      logger.info("checked same fields!")
       val results = reply.getArray("results")
       val mrTest = results.get[JsonArray](0)
-      logger.info("checking mr test")
       checkMrTest(mrTest)
     }
   }
@@ -152,21 +148,15 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   }
 
   private def checkMrTest(mrTest: JsonArray) = {
-      logger.info("checking mr test name")
     assertEquals("Mr. Test", mrTest.get[String](0))
-      logger.info("checking email")
     assertEquals("test@example.com", mrTest.get[String](1))
-      logger.info("checking is male")
     assertTrue(mrTest.get[Any](2) match {
       case b: Boolean => b
       case i: Number => i.intValue() == 1
       case x => false
     })
-      logger.info("checking age")
     assertEquals(15, mrTest.get[Number](3).intValue())
-      logger.info("checking money -> exception?!")
     assertEquals(167.31, mrTest.get[Number](4).doubleValue(), 0.0001)
-      logger.info("checking money -> NO exception?!")
     // FIXME check date conversion
     // assertEquals("2024-04-01", mrTest.get[JsonObject](5))
   }
