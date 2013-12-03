@@ -11,7 +11,7 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 
 ## Installation
 
-`vertx install io.vertx~mod-mysql-postgresql~0.1.0-SNAPSHOT`
+`vertx install io.vertx~mod-mysql-postgresql~0.2.0`
 
 ## Configuration
 
