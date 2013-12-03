@@ -104,8 +104,6 @@ Creates a prepared statement and lets you fill the `?` with values.
 
 Takes several statements and wraps them into a single transaction for the server to process. Use `statement : [...actions...]` to create such a transaction. Only `select`, `insert` and `raw` commands are allowed right now.
 
-Be aware: This is only tested and working with PostgreSQL currently.
-
     {
       "action" : "transaction",
       "statements" : [
@@ -117,12 +115,12 @@ Be aware: This is only tested and working with PostgreSQL currently.
         },
         {
           "action" : "raw",
-          "command" : "UPDATE account SET balance=balance+? WHERE name=?",
+          "command" : "UPDATE account SET balance=balance+1 WHERE name='Mr. Test'",
         },
         {
-          "action" : "select",
-          "table" : "account",
-          "fields" : ["balance"]
+          "action" : "prepared",
+          "statement" : "UPDATE account SET balance=balance+? WHERE name=?",
+          "values" : [25, 'Mr. Test']
         }
       ]
     }

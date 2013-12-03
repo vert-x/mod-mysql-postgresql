@@ -65,7 +65,7 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
   protected def transaction(statements: JsonObject*) = Json.obj("action" -> "transaction", "statements" -> Json.arr(statements: _*))
 
   protected def createTable(tableName: String) = expectOk(raw(createTableStatement(tableName))) map { reply =>
-    assertEquals(0, reply.getNumber("rows"))
+    assertEquals(0, reply.getInteger("rows"))
     reply
   }
 
@@ -81,7 +81,7 @@ CREATE TABLE """ + tableName + """ (
   email VARCHAR(255) UNIQUE,
   is_male BOOLEAN,
   age INT,
-  money FLOAT,
+  money DOUBLE PRECISION,
   wedding_date DATE
 );
 """

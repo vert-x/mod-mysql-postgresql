@@ -28,9 +28,9 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   override def asyncReceive(msg: Message[JsonObject]) = {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)
-    case "prepared" => prepared(msg.body)
+    case "prepared" => sendWithPool(prepared(msg.body))
     case "transaction" => transaction(msg.body)
-    case "raw" => rawCommand(msg.body.getString("command"))
+    case "raw" => sendWithPool(rawCommand(msg.body.getString("command")))
   }
 
   def close() = pool.close
@@ -53,7 +53,7 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   }
 
   protected def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
-    rawCommand(selectCommand(json))
+    sendWithPool(rawCommand(selectCommand(json)))
   })
 
   protected def insertCommand(json: JsonObject): String = {
@@ -74,27 +74,37 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   }
 
   protected def insert(json: JsonObject): Future[Reply] = {
-    rawCommand(insertCommand(json))
+    sendWithPool(rawCommand(insertCommand(json)))
   }
+
+  sealed trait CommandType { val query: Connection => Future[QueryResult] }
+  case class Raw(stmt: String) extends CommandType { val query = rawCommand(stmt) }
+  case class Prepared(json: JsonObject) extends CommandType { val query = prepared(json) }
 
   protected def transaction(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
     logger.info("TRANSACTION-JSON: " + json.encodePrettily())
+
     Option(json.getArray("statements")) match {
-      case Some(statements) => rawCommand((statements.asScala.map {
-        case js: JsonObject =>
-          js.getString("action") match {
-            case "select" => selectCommand(js)
-            case "insert" => insertCommand(js)
-            case "raw" => js.getString("command")
-          }
-        case _ => throw new IllegalArgumentException("'statements' needs JsonObjects!")
-      }).mkString(transactionStart, statementDelimiter, statementDelimiter + transactionEnd))
+      case Some(statements) => c.inTransaction { conn: Connection =>
+        val futures = (statements.asScala.map {
+          case js: JsonObject =>
+            js.getString("action") match {
+              case "select" => Raw(selectCommand(js))
+              case "insert" => Raw(insertCommand(js))
+              case "prepared" => Prepared(js)
+              case "raw" => Raw(js.getString("command"))
+            }
+          case _ => throw new IllegalArgumentException("'statements' needs JsonObjects!")
+        })
+        val f = (futures.foldLeft(Future[Any]()) { case (f, cmd) => f flatMap (_ => cmd.query(conn)) })
+        f map (_ => Ok(Json.obj()))
+      }
       case None => throw new IllegalArgumentException("No 'statements' field in request!")
     }
   })
 
-  protected def prepared(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
-    c.sendPreparedStatement(json.getString("statement"), json.getArray("values").toArray()) map buildResults recover {
+  protected def sendWithPool(fn: Connection => Future[QueryResult]): Future[Reply] = pool.withConnection({ c: Connection =>
+    fn(c) map buildResults recover {
       case x: GenericDatabaseException =>
         Error(x.errorMessage.message)
       case x =>
@@ -102,15 +112,11 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
     }
   })
 
-  protected def rawCommand(command: String): Future[Reply] = pool.withConnection({ c: Connection =>
-    logger.info("sending command: " + command)
-    c.sendQuery(command) map buildResults recover {
-      case x: GenericDatabaseException =>
-        Error(x.errorMessage.message)
-      case x =>
-        Error(x.getMessage())
-    }
-  })
+  protected def prepared(json: JsonObject): Connection => Future[QueryResult] = { c: Connection =>
+    c.sendPreparedStatement(json.getString("statement"), json.getArray("values").toArray())
+  }
+
+  protected def rawCommand(command: String): Connection => Future[QueryResult] = { c: Connection => c.sendQuery(command) }
 
   private def buildResults(qr: QueryResult): Reply = {
     val result = new JsonObject()
@@ -123,13 +129,9 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
           arr.addString(name)
         }
 
-        val rows = Json.arr((for {
-          rowData <- resultSet
-        } yield Json.arr((for {
-          columnName <- resultSet.columnNames
-        } yield {
-          rowData(columnName)
-        }): _*)): _*)
+        val rows = (new JsonArray() /: resultSet) { (arr, rowData) =>
+          arr.add(rowDataToJsonArray(rowData))
+        }
 
         result.putArray("fields", fields)
         result.putArray("results", rows)
@@ -138,4 +140,6 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
 
     Ok(result)
   }
+
+  private def rowDataToJsonArray(rowData: RowData): JsonArray = Json.arr(rowData.toList: _*)
 }

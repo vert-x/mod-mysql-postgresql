@@ -50,9 +50,9 @@ CREATE TABLE """ + tableName + """ (
   override def selectFiltered(): Unit = super.selectFiltered()
   @Test
   override def preparedSelect(): Unit = super.preparedSelect()
-
-  //  @Ignore("not working currently")
-  //  @Test
-  //  override def transaction(): Unit = super.transaction()
+  @Test
+  override def transaction(): Unit = super.transaction()
+  @Test
+  override def transactionWithPreparedStatement(): Unit = super.transactionWithPreparedStatement()
 
 }

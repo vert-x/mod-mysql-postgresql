@@ -38,5 +38,7 @@ class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
   override def preparedSelect(): Unit = super.preparedSelect()
   @Test
   override def transaction(): Unit = super.transaction()
+  @Test
+  override def transactionWithPreparedStatement(): Unit = super.transactionWithPreparedStatement()
 
 }

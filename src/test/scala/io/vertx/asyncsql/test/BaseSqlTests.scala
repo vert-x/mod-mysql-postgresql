@@ -14,8 +14,8 @@ trait BaseSqlTests { this: SqlTestVerticle =>
       sth <- fn
       _ <- dropTable(tableName)
     } yield sth) recoverWith {
-      case _ =>
-        dropTable(tableName)
+      case x =>
+        dropTable(tableName) map (_ => throw x)
     }
   }
 
@@ -34,7 +34,7 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     expectOk(raw("SELECT 0")) map { reply =>
       val res = reply.getArray("results")
       assertEquals(1, res.size())
-      assertEquals(0, res.get[JsonArray](0).get[Int](0))
+      assertEquals(0, res.get[JsonArray](0).get[Number](0).intValue())
     }
   }
 
@@ -43,8 +43,8 @@ trait BaseSqlTests { this: SqlTestVerticle =>
       val res = reply.getArray("results")
       assertEquals(1, res.size())
       val firstElem = res.get[JsonArray](0)
-      assertEquals(1, firstElem.get[Integer](0))
-      assertEquals(0, firstElem.get[Integer](1))
+      assertEquals(1, firstElem.get[Number](0).intValue())
+      assertEquals(0, firstElem.get[Number](1).intValue())
     }
   }
 
@@ -54,21 +54,25 @@ trait BaseSqlTests { this: SqlTestVerticle =>
       val receivedFields = reply.getArray("fields")
       val results = reply.getArray("results").get[JsonArray](0)
 
-      assertEquals(1, reply.getNumber("rows"))
+      assertEquals(1, reply.getInteger("rows"))
 
       val columnNamesList = receivedFields.asScala.toList
 
       assertEquals("Mr. Test", results.get(columnNamesList.indexOf("name")))
       assertEquals("test@example.com", results.get(columnNamesList.indexOf("email")))
-      assertEquals(15, results.get(columnNamesList.indexOf("age")))
-      assertEquals(true, results.get(columnNamesList.indexOf("is_male")))
-      assertEquals(167.31,  results.get(columnNamesList.indexOf("money")), 0.1)
+      assertEquals(15, results.get[Int](columnNamesList.indexOf("age")))
+      assertTrue(results.get[Any](columnNamesList.indexOf("is_male")) match {
+        case b: Boolean => b
+        case i: Number => i.intValue() == 1
+        case x => false
+      })
+      assertEquals(167.31, results.get[Number](columnNamesList.indexOf("money")).doubleValue(), 0.01)
     }
   }
 
   def createAndDropTable(): Unit = asyncTest {
     createTable("some_test") flatMap (_ => dropTable("some_test")) map { reply =>
-      assertEquals(0, reply.getNumber("rows"))
+      assertEquals(0, reply.getInteger("rows"))
     }
   }
 
@@ -109,13 +113,14 @@ trait BaseSqlTests { this: SqlTestVerticle =>
       assertFieldName("age")
       assertFieldName("money")
       assertFieldName("wedding_date")
+      val moneyField = receivedFields.toArray().indexOf("money")
 
       val mrTest = reply.getArray("results").get[JsonArray](0)
       assertTrue(mrTest.contains("Mr. Test"))
       assertTrue(mrTest.contains("test@example.com"))
       assertTrue(mrTest.contains(true) || mrTest.contains(1))
       assertTrue(mrTest.contains(15))
-      assertTrue(mrTest.contains(167.31))
+      assertEquals(167.31, mrTest.get[Number](moneyField).doubleValue(), 0.0001)
     }
   }
 
@@ -123,8 +128,6 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     val fieldsArray = Json.arr("name", "email", "is_male", "age", "money", "wedding_date")
     expectOk(select("some_test", fieldsArray)) map { reply =>
       val receivedFields = reply.getArray("fields")
-      logger.info("received: " + receivedFields.encode())
-      logger.info("fieldsAr: " + fieldsArray.encode())
       checkSameFields(fieldsArray, receivedFields)
       val results = reply.getArray("results")
       val mrTest = results.get[JsonArray](0)
@@ -147,9 +150,13 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   private def checkMrTest(mrTest: JsonArray) = {
     assertEquals("Mr. Test", mrTest.get[String](0))
     assertEquals("test@example.com", mrTest.get[String](1))
-    assertTrue(mrTest.get[Boolean](2) == true || mrTest.get[Integer](2) == 1)
-    assertEquals(15, mrTest.get[Integer](3))
-    assertEquals(167.31, mrTest.get[Integer](4))
+    assertTrue(mrTest.get[Any](2) match {
+      case b: Boolean => b
+      case i: Number => i.intValue() == 1
+      case x => false
+    })
+    assertEquals(15, mrTest.get[Number](3).intValue())
+    assertEquals(167.31, mrTest.get[Number](4).doubleValue(), 0.0001)
     // FIXME check date conversion
     // assertEquals("2024-04-01", mrTest.get[JsonObject](5))
   }
@@ -158,8 +165,8 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     assertEquals("Mrs. Test", mrsTest.get[String](0))
     assertEquals("test2@example.com", mrsTest.get[String](1))
     assertEquals(false, mrsTest.get[Boolean](2))
-    assertEquals(43, mrsTest.get[Integer](3))
-    assertEquals(167.31, mrsTest.get[Integer](4))
+    assertEquals(43L, mrsTest.get[Long](3))
+    assertEquals(167.31, mrsTest.get[Number](4).doubleValue(), 0.0001)
     // FIXME check date conversion
     // assertEquals("1997-12-24", mrsTest.get[JsonObject](5))
   }
@@ -194,15 +201,32 @@ trait BaseSqlTests { this: SqlTestVerticle =>
   }
 
   def transaction(): Unit = typeTestInsert {
-    expectOk(
-      transaction(
-        insert("some_test", Json.arr("name", "email", "is_male", "age", "money"),
-          Json.arr(Json.arr("Mr. Test jr.", "test3@example.com", true, 5, 2))),
-        raw("SELECT SUM(age) FROM some_test WHERE is_male = true")))
-      .map { reply =>
-        val results = reply.getArray("results")
-        assertEquals(1, results.size())
-        assertEquals(20, results.get[JsonArray](0).get[Int](0))
-      }
+    (for {
+      a <- expectOk(
+        transaction(
+          insert("some_test", Json.arr("name", "email", "is_male", "age", "money"),
+            Json.arr(Json.arr("Mr. Test jr.", "test3@example.com", true, 5, 2))),
+          raw("UPDATE some_test SET age=6 WHERE name = 'Mr. Test jr.'")))
+      b <- expectOk(raw("SELECT SUM(age) FROM some_test WHERE is_male = true"))
+    } yield b) map { reply =>
+      val results = reply.getArray("results")
+      assertEquals(1, results.size())
+      assertEquals(21, results.get[JsonArray](0).get[Number](0).intValue())
+    }
+  }
+
+  def transactionWithPreparedStatement(): Unit = typeTestInsert {
+    (for {
+      a <- expectOk(
+        transaction(
+          insert("some_test", Json.arr("name", "email", "is_male", "age", "money"),
+            Json.arr(Json.arr("Mr. Test jr.", "test3@example.com", true, 5, 2))),
+          prepared("UPDATE some_test SET age=? WHERE name=?", Json.arr(6, "Mr. Test jr."))))
+      b <- expectOk(raw("SELECT SUM(age) FROM some_test WHERE is_male = true"))
+    } yield b) map { reply =>
+      val results = reply.getArray("results")
+      assertEquals(1, results.size())
+      assertEquals(21, results.get[JsonArray](0).get[Number](0).intValue())
+    }
   }
 }
