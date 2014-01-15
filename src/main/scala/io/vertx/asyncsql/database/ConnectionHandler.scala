@@ -9,28 +9,36 @@ import org.vertx.scala.platform.Verticle
 import com.github.mauricio.async.db.{ Configuration, Connection, QueryResult, RowData }
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import io.vertx.asyncsql.database.pool.AsyncConnectionPool
-import io.vertx.busmod.ScalaBusMod
 import io.vertx.helpers.VertxScalaHelpers
 import org.vertx.scala.core.json.Json
+import org.vertx.scala.mods.ScalaBusMod
+import org.vertx.scala.mods.replies._
+import org.vertx.scala.core.Vertx
+import org.vertx.scala.platform.Container
+import io.vertx.asyncsql.Starter
 
 trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
-  val verticle: Verticle
+  val verticle: Starter
   def dbType: String
   val config: Configuration
+  val maxPoolSize: Int
+
+  lazy val vertx: Vertx = verticle.vertx
+  lazy val container: Container = verticle.container
   lazy val logger: Logger = verticle.logger
-  val pool = AsyncConnectionPool(verticle.vertx, dbType, config)
+  lazy val pool = AsyncConnectionPool(verticle, dbType, maxPoolSize, config)
 
   def transactionStart: String = "START TRANSACTION;"
   def transactionEnd: String = "COMMIT;"
   def statementDelimiter: String = ";"
 
   import org.vertx.scala.core.eventbus._
-  override def asyncReceive(msg: Message[JsonObject]) = {
+  override def receive(msg: Message[JsonObject]) = {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)
-    case "prepared" => sendWithPool(prepared(msg.body))
+    case "prepared" => AsyncReply(sendWithPool(prepared(msg.body)))
     case "transaction" => transaction(msg.body)
-    case "raw" => sendWithPool(rawCommand(msg.body.getString("command")))
+    case "raw" => AsyncReply(sendWithPool(rawCommand(msg.body.getString("command"))))
   }
 
   def close() = pool.close
@@ -52,9 +60,9 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
     }
   }
 
-  protected def select(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+  protected def select(json: JsonObject): AsyncReply = AsyncReply(pool.withConnection({ c: Connection =>
     sendWithPool(rawCommand(selectCommand(json)))
-  })
+  }))
 
   protected def insertCommand(json: JsonObject): String = {
     val table = json.getString("table")
@@ -73,7 +81,7 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
       .append(listOfLines.mkString(",")).toString
   }
 
-  protected def insert(json: JsonObject): Future[Reply] = {
+  protected def insert(json: JsonObject): AsyncReply = AsyncReply {
     sendWithPool(rawCommand(insertCommand(json)))
   }
 
@@ -81,7 +89,7 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
   case class Raw(stmt: String) extends CommandType { val query = rawCommand(stmt) }
   case class Prepared(json: JsonObject) extends CommandType { val query = prepared(json) }
 
-  protected def transaction(json: JsonObject): Future[Reply] = pool.withConnection({ c: Connection =>
+  protected def transaction(json: JsonObject): AsyncReply = AsyncReply(pool.withConnection({ c: Connection =>
     logger.info("TRANSACTION-JSON: " + json.encodePrettily())
 
     Option(json.getArray("statements")) match {
@@ -101,9 +109,10 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
       }
       case None => throw new IllegalArgumentException("No 'statements' field in request!")
     }
-  })
+  }))
 
-  protected def sendWithPool(fn: Connection => Future[QueryResult]): Future[Reply] = pool.withConnection({ c: Connection =>
+  
+  protected def sendWithPool(fn: Connection => Future[QueryResult]): Future[SyncReply] = pool.withConnection({ c: Connection =>
     fn(c) map buildResults recover {
       case x: GenericDatabaseException =>
         Error(x.errorMessage.message)
@@ -118,7 +127,7 @@ trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
 
   protected def rawCommand(command: String): Connection => Future[QueryResult] = { c: Connection => c.sendQuery(command) }
 
-  private def buildResults(qr: QueryResult): Reply = {
+  private def buildResults(qr: QueryResult): SyncReply = {
     val result = new JsonObject()
     result.putString("message", qr.statusMessage)
     result.putNumber("rows", qr.rowsAffected)

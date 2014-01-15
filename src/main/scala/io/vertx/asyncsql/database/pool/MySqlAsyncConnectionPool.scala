@@ -6,19 +6,12 @@ import com.github.mauricio.async.db.mysql.MySQLConnection
 import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
 import io.netty.channel.EventLoop
 import org.vertx.scala.core.VertxExecutionContext
+import org.vertx.scala.core.Vertx
+import org.vertx.scala.platform.Verticle
+import io.vertx.asyncsql.Starter
 
-class MySqlAsyncConnectionPool(config: Configuration, eventLoop: EventLoop, implicit val executionContext: ExecutionContext = VertxExecutionContext) extends AsyncConnectionPool[PostgreSQLConnection] {
+class MySqlAsyncConnectionPool(verticle: Starter, config: Configuration, eventLoop: EventLoop, val maxPoolSize: Int) extends AsyncConnectionPool {
 
-  override def take() = new MySQLConnection(configuration = config, group = eventLoop).connect
-
-  override def giveBack(connection: Connection) = {
-    connection.disconnect map (_ => MySqlAsyncConnectionPool.this) recover {
-      case ex =>
-        executionContext.reportFailure(ex)
-        MySqlAsyncConnectionPool.this
-    }
-  }
-
-  override def close() = Future.successful(MySqlAsyncConnectionPool.this)
+  override def create() = new MySQLConnection(configuration = config, group = eventLoop).connect
 
 }

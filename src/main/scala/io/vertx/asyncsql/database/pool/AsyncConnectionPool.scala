@@ -1,41 +1,104 @@
 package io.vertx.asyncsql.database.pool
 
-import com.github.mauricio.async.db.Configuration
-import scala.concurrent.Future
-import com.github.mauricio.async.db.Connection
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Promise
-import scala.util.Failure
-import scala.util.Success
-import org.vertx.scala.core.Vertx
+import scala.annotation.implicitNotFound
+import scala.collection.mutable.Queue
+import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.util.{ Failure, Success }
 import org.vertx.java.core.impl.EventLoopContext
+import org.vertx.scala.platform.Verticle
+import com.github.mauricio.async.db.{ Configuration, Connection }
+import io.vertx.asyncsql.Starter
+import org.vertx.scala.core.VertxExecutionContext
 
-trait AsyncConnectionPool[ConnType <: Connection] {
+trait AsyncConnectionPool extends VertxExecutionContext {
 
-  def take(): Future[Connection]
+  val maxPoolSize: Int
 
-  def giveBack(conn: Connection): Future[AsyncConnectionPool[ConnType]]
+  private var poolSize: Int = 0
+  private val availableConnections: Queue[Connection] = Queue.empty
+  private val usedConnections: Queue[Connection] = Queue.empty
+  private val waiters: Queue[Promise[Connection]] = Queue.empty
 
-  def close: Future[AsyncConnectionPool[ConnType]]
+  def create(): Future[Connection]
 
-  def withConnection[ResultType](fn: Connection => Future[ResultType])(implicit ec: ExecutionContext): Future[ResultType] = {
+  private def createConnection(): Future[Connection] = {
+    poolSize += 1
+    create() recoverWith {
+      case ex: Throwable =>
+        poolSize -= 1
+        Future.failed(ex)
+    }
+  }
+
+  private def waitForAvailableConnection(): Future[Connection] = {
+    val p = Promise[Connection]
+    waiters.enqueue(p)
+    p.future
+  }
+
+  private def createOrWaitForAvailableConnection(): Future[Connection] = {
+    if (poolSize < maxPoolSize) {
+      createConnection()
+    } else {
+      waitForAvailableConnection()
+    }
+  }
+
+  def take(): Future[Connection] = {
+    (availableConnections.dequeueFirst(_ => true) match {
+      case Some(connection) =>
+        if (connection.isConnected) {
+          Future.successful(connection)
+        } else {
+          poolSize -= 1
+          createConnection()
+        }
+      case None =>
+        createOrWaitForAvailableConnection()
+    }) map { c =>
+      usedConnections.enqueue(c)
+      c
+    }
+  }
+
+  private def notifyWaitersAboutAvailableConnection(): Future[_] = {
+    waiters.dequeueFirst(_ => true) match {
+      case Some(waiter) =>
+        waiter.completeWith(take())
+        waiter.future
+      case None =>
+        Future.successful()
+    }
+  }
+
+  def giveBack(conn: Connection)(implicit ec: ExecutionContext) = {
+    usedConnections.dequeueFirst(_ == conn)
+    if (conn.isConnected) {
+      availableConnections.enqueue(conn)
+    } else {
+      poolSize -= 1
+    }
+    notifyWaitersAboutAvailableConnection()
+  }
+
+  def close(): Future[AsyncConnectionPool] = {
+    Future.sequence(availableConnections.map(_.disconnect)) map (_ => this)
+  }
+
+  def withConnection[ResultType](fn: Connection => Future[ResultType]): Future[ResultType] = {
     val p = Promise[ResultType]
     take map { c: Connection =>
       try {
-        println("got connection from pool")
         fn(c).onComplete {
           case Success(x) =>
-            println("got a success -> connection back to pool")
             giveBack(c)
             p.success(x)
           case Failure(x) =>
-            println("got a failure -> connection back to pool")
             giveBack(c)
             p.failure(x)
         }
       } catch {
         case ex: Throwable =>
-          println("connection back into pool")
           giveBack(c)
           p.failure(ex)
       }
@@ -44,20 +107,26 @@ trait AsyncConnectionPool[ConnType <: Connection] {
     }
     p.future
   }
+
 }
 
 object AsyncConnectionPool {
 
-  def apply(vertx: Vertx, dbType: String, config: Configuration) = {
+  def apply(verticle: Starter, dbType: String, maxPoolSize: Int, config: Configuration) = {
     dbType match {
       case "postgresql" =>
-        new PostgreSqlAsyncConnectionPool(
+        new PostgreSqlAsyncConnectionPool(verticle,
           config,
-          vertx.internal.currentContext().asInstanceOf[EventLoopContext].getEventLoop())
+          verticle.vertx.asJava.currentContext().asInstanceOf[EventLoopContext].getEventLoop(),
+          maxPoolSize)
       case "mysql" =>
-        new MySqlAsyncConnectionPool(config,
-          vertx.internal.currentContext().asInstanceOf[EventLoopContext].getEventLoop())
-      case _ => throw new NotImplementedError
+        new MySqlAsyncConnectionPool(verticle,
+          config,
+          verticle.vertx.asJava.currentContext().asInstanceOf[EventLoopContext].getEventLoop(),
+          maxPoolSize)
+      case x => {
+        throw new NotImplementedError
+      }
     }
   }
 

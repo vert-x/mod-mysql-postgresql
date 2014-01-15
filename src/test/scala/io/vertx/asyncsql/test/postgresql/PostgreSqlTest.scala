@@ -8,12 +8,14 @@ import io.vertx.asyncsql.test.{ BaseSqlTests, SqlTestVerticle }
 class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
 
   val address = "campudus.asyncdb"
-  val config = Json.obj("address" -> address)
+  val config = Json.obj("address" -> address, "maxPoolSize" -> 3)
 
   override def getConfig = config
 
   @Test
   override def simpleConnection(): Unit = super.simpleConnection()
+  @Test
+  override def poolSize(): Unit = super.poolSize()
   @Test
   override def multipleFields(): Unit = super.multipleFields()
   @Test
