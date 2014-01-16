@@ -16,7 +16,6 @@ trait AsyncConnectionPool extends VertxExecutionContext {
 
   private var poolSize: Int = 0
   private val availableConnections: Queue[Connection] = Queue.empty
-  private val usedConnections: Queue[Connection] = Queue.empty
   private val waiters: Queue[Promise[Connection]] = Queue.empty
 
   def create(): Future[Connection]
@@ -44,21 +43,15 @@ trait AsyncConnectionPool extends VertxExecutionContext {
     }
   }
 
-  def take(): Future[Connection] = {
-    (availableConnections.dequeueFirst(_ => true) match {
-      case Some(connection) =>
-        if (connection.isConnected) {
-          Future.successful(connection)
-        } else {
-          poolSize -= 1
-          createConnection()
-        }
-      case None =>
-        createOrWaitForAvailableConnection()
-    }) map { c =>
-      usedConnections.enqueue(c)
-      c
-    }
+  def take(): Future[Connection] = availableConnections.dequeueFirst(_ => true) match {
+    case Some(connection) =>
+      if (connection.isConnected) {
+        Future.successful(connection)
+      } else {
+        poolSize -= 1
+        take()
+      }
+    case None => createOrWaitForAvailableConnection()
   }
 
   private def notifyWaitersAboutAvailableConnection(): Future[_] = {
@@ -72,7 +65,6 @@ trait AsyncConnectionPool extends VertxExecutionContext {
   }
 
   def giveBack(conn: Connection)(implicit ec: ExecutionContext) = {
-    usedConnections.dequeueFirst(_ == conn)
     if (conn.isConnected) {
       availableConnections.enqueue(conn)
     } else {
