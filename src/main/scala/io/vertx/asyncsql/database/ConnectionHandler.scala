@@ -9,7 +9,6 @@ import org.vertx.scala.platform.Verticle
 import com.github.mauricio.async.db.{ Configuration, Connection, QueryResult, RowData }
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import io.vertx.asyncsql.database.pool.AsyncConnectionPool
-import io.vertx.helpers.VertxScalaHelpers
 import org.vertx.scala.core.json.Json
 import org.vertx.scala.mods.ScalaBusMod
 import org.vertx.scala.mods.replies._
@@ -17,7 +16,7 @@ import org.vertx.scala.core.Vertx
 import org.vertx.scala.platform.Container
 import io.vertx.asyncsql.Starter
 
-trait ConnectionHandler extends ScalaBusMod with VertxScalaHelpers {
+trait ConnectionHandler extends ScalaBusMod {
   val verticle: Starter
   def dbType: String
   val config: Configuration

@@ -1,16 +1,14 @@
 package io.vertx.asyncsql.test
 
-import scala.concurrent.{ Future, Promise }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success}
 
 import org.vertx.scala.core.AsyncResult
-import org.vertx.scala.core.json.{ Json, JsonArray, JsonObject }
+import org.vertx.scala.core.json._
 import org.vertx.scala.testtools.TestVerticle
-import org.vertx.testtools.VertxAssert.{ assertEquals, assertTrue }
+import org.vertx.testtools.VertxAssert.{assertEquals, assertTrue}
 
-import io.vertx.helpers.VertxScalaHelpers
-
-abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
+abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest {
 
   override final def before() {}
   override def asyncBefore(): Future[Unit] = {
