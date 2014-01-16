@@ -20,6 +20,7 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
       "connection" : <MySQL|PostgreSQL>,
       "host" : <your-host>,
       "port" : <your-port>,
+      "maxPoolSize" : <maximum-number-of-open-connections>,
       "username" : <your-username>,
       "password" : <your-password>,
       "database" : <name-of-your-database>
@@ -29,6 +30,7 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 * `connection` - The database you want to use. Defaults to `PostgreSQL`.
 * `host` - The host of the database. Defaults to `localhost`.
 * `port` - The port of the database. Defaults to `5432` for PostgreSQL and `3306` for MySQL.
+* `maxPoolSize` - The number of connections that may be kept open. Defaults to `10`.
 * `username` - The username to connect to the database. Defaults to `postgres` for PostgreSQL and `root` for MySQL.
 * `password` - The password to connect to the database. Default is not set, i.e. it uses no password.
 * `database` - The name of the database you want to connect to. Defaults to `test`.
