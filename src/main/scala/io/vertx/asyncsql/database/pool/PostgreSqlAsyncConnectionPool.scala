@@ -5,19 +5,11 @@ import com.github.mauricio.async.db.{ Configuration, Connection }
 import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
 import io.netty.channel.EventLoop
 import org.vertx.scala.core.VertxExecutionContext
+import org.vertx.scala.platform.Verticle
+import io.vertx.asyncsql.Starter
 
-class PostgreSqlAsyncConnectionPool(config: Configuration, eventLoop: EventLoop, implicit val executionContext: ExecutionContext = VertxExecutionContext) extends AsyncConnectionPool[PostgreSQLConnection] {
+class PostgreSqlAsyncConnectionPool(verticle: Starter, config: Configuration, eventLoop: EventLoop, val maxPoolSize: Int) extends AsyncConnectionPool {
 
-  override def take() = new PostgreSQLConnection(configuration = config, group = eventLoop).connect
-
-  override def giveBack(connection: Connection) = {
-    connection.disconnect map (_ => PostgreSqlAsyncConnectionPool.this) recover {
-      case ex =>
-        executionContext.reportFailure(ex)
-        PostgreSqlAsyncConnectionPool.this
-    }
-  }
-
-  override def close() = Future.successful(PostgreSqlAsyncConnectionPool.this)
+  override def create() = new PostgreSQLConnection(configuration = config, group = eventLoop).connect
 
 }

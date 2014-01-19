@@ -8,7 +8,7 @@ import org.junit.Ignore
 class MySqlTest extends SqlTestVerticle with BaseSqlTests {
 
   val address = "campudus.asyncdb"
-  val config = Json.obj("address" -> address, "connection" -> "MySQL")
+  val config = Json.obj("address" -> address, "connection" -> "MySQL", "maxPoolSize" -> 3)
 
   override def doBefore() = expectOk(raw("DROP TABLE IF EXISTS `some_test`"))
   override def getConfig = config
@@ -28,6 +28,8 @@ CREATE TABLE """ + tableName + """ (
 
   @Test
   override def simpleConnection(): Unit = super.simpleConnection()
+  @Test
+  override def poolSize(): Unit = super.poolSize()
   @Test
   override def multipleFields(): Unit = super.multipleFields()
   @Test

@@ -1,23 +1,19 @@
 package io.vertx.asyncsql.test
 
-import scala.concurrent.{ Future, Promise }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success}
 
 import org.vertx.scala.core.AsyncResult
-import org.vertx.scala.core.json.{ Json, JsonArray, JsonObject }
+import org.vertx.scala.core.json._
 import org.vertx.scala.testtools.TestVerticle
-import org.vertx.testtools.VertxAssert.{ assertEquals, assertTrue }
+import org.vertx.testtools.VertxAssert.{assertEquals, assertTrue}
 
-import io.vertx.helpers.VertxScalaHelpers
-
-abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest with VertxScalaHelpers {
+abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest {
 
   override final def before() {}
   override def asyncBefore(): Future[Unit] = {
     val p = Promise[Unit]
-    println("DEPLOYING !!!")
     container.deployModule(System.getProperty("vertx.modulename"), getConfig(), 1, { deploymentID: AsyncResult[String] =>
-      println("deployed? " + deploymentID.succeeded())
       if (deploymentID.failed()) {
         logger.info(deploymentID.cause())
         p.failure(deploymentID.cause())
@@ -28,18 +24,14 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
       doBefore() onComplete {
         case Success(_) =>
           logger.info("starting tests")
-          println("should start tests now...")
           p.success()
         case Failure(ex) => p.failure(ex)
       }
-      println("async doBefore() started")
     })
     p.future
   }
 
   def doBefore(): Future[_] = {
-    println("in doBefore()")
-
     Future.successful()
   }
 

@@ -1,6 +1,7 @@
 package io.vertx.asyncsql
 
-import scala.concurrent.Promise
+import scala.annotation.implicitNotFound
+import scala.concurrent.{ ExecutionContext, Promise }
 
 import org.vertx.scala.core.json.{ Json, JsonObject }
 import org.vertx.scala.platform.Verticle
@@ -15,7 +16,7 @@ class Starter extends Verticle {
 
   override def start(startedResult: Promise[Unit]) = {
 
-    logger.error("Starting async database module for MySQL and PostgreSQL.")
+    logger.info("Starting async database module for MySQL and PostgreSQL.")
 
     try {
       val config = Option(container.config()).getOrElse(Json.emptyObj())
@@ -23,14 +24,15 @@ class Starter extends Verticle {
       val address = config.getString("address", "campudus.asyncdb")
       val dbType = getDatabaseType(config)
       val configuration = getConfiguration(config, dbType)
+      val maxPoolSize = config.getInteger("maxPoolSize", 10)
 
       handler = dbType match {
-        case "postgresql" => new PostgreSqlConnectionHandler(this, configuration)
-        case "mysql" => new MySqlConnectionHandler(this, configuration)
+        case "postgresql" => new PostgreSqlConnectionHandler(this, configuration, maxPoolSize)
+        case "mysql" => new MySqlConnectionHandler(this, configuration, maxPoolSize)
       }
       vertx.eventBus.registerHandler(address, handler)
 
-      logger.error("Async database module for MySQL and PostgreSQL started with config " + configuration)
+      logger.info("Async database module for MySQL and PostgreSQL started with config " + configuration)
 
       startedResult.success()
     } catch {

@@ -38,6 +38,24 @@ trait BaseSqlTests { this: SqlTestVerticle =>
     }
   }
 
+  def poolSize(): Unit = asyncTest {
+    val n = 10
+    val futures = for {
+      i <- 1 to n
+    } yield {
+      expectOk(raw("SELECT " + i)) map { reply =>
+        val res = reply.getArray("results")
+        assertEquals(1, res.size())
+        val result = res.get[JsonArray](0).get[Number](0).intValue()
+        assertEquals(i, result)
+        result
+      }
+    }
+
+    val fs = Future.sequence(futures) map (_.sum)
+    fs map (assertEquals((n * (n + 1)) / 2, _))
+  }
+
   def multipleFields(): Unit = asyncTest {
     expectOk(raw("SELECT 1 a, 0 b")) map { reply =>
       val res = reply.getArray("results")
@@ -229,4 +247,5 @@ trait BaseSqlTests { this: SqlTestVerticle =>
       assertEquals(21, results.get[JsonArray](0).get[Number](0).intValue())
     }
   }
+
 }
