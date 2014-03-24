@@ -1,18 +1,18 @@
 package io.vertx.asyncsql.database.pool
 
-import scala.annotation.implicitNotFound
 import scala.collection.mutable.Queue
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success }
 import org.vertx.java.core.impl.EventLoopContext
-import org.vertx.scala.platform.Verticle
 import com.github.mauricio.async.db.{ Configuration, Connection }
 import io.vertx.asyncsql.Starter
 import org.vertx.scala.core.VertxExecutionContext
 
-trait AsyncConnectionPool extends VertxExecutionContext {
+trait AsyncConnectionPool {
 
   val maxPoolSize: Int
+  val verticle: Starter
+  implicit val executionContext = VertxExecutionContext.fromVertxAccess(verticle)
 
   private var poolSize: Int = 0
   private val availableConnections: Queue[Connection] = Queue.empty

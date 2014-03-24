@@ -2,19 +2,17 @@ package io.vertx.asyncsql.database
 
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.concurrent.Future
-import org.vertx.scala.core.eventbus.Message
-import org.vertx.scala.core.json.{ JsonArray, JsonObject }
+import org.vertx.scala.core.json.{JsonElement, JsonArray, JsonObject, Json}
 import org.vertx.scala.core.logging.Logger
-import org.vertx.scala.platform.Verticle
 import com.github.mauricio.async.db.{ Configuration, Connection, QueryResult, RowData }
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import io.vertx.asyncsql.database.pool.AsyncConnectionPool
-import org.vertx.scala.core.json.Json
 import org.vertx.scala.mods.ScalaBusMod
 import org.vertx.scala.mods.replies._
 import org.vertx.scala.core.Vertx
 import org.vertx.scala.platform.Container
 import io.vertx.asyncsql.Starter
+import org.vertx.scala.mods.ScalaBusMod.Receive
 
 trait ConnectionHandler extends ScalaBusMod {
   val verticle: Starter
@@ -32,7 +30,7 @@ trait ConnectionHandler extends ScalaBusMod {
   def statementDelimiter: String = ";"
 
   import org.vertx.scala.core.eventbus._
-  override def receive(msg: Message[JsonObject]) = {
+  override def receive: Receive = (msg: Message[JsonObject]) => {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)
     case "prepared" => AsyncReply(sendWithPool(prepared(msg.body)))
@@ -40,15 +38,16 @@ trait ConnectionHandler extends ScalaBusMod {
     case "raw" => AsyncReply(sendWithPool(rawCommand(msg.body.getString("command"))))
   }
 
-  def close() = pool.close
+  def close() = pool.close()
 
   protected def escapeField(str: String): String = "\"" + str.replace("\"", "\"\"") + "\""
   protected def escapeString(str: String): String = "'" + str.replace("'", "''") + "'"
 
   protected def escapeValue(v: Any): String = v match {
-    case v: Int => v.toString
-    case v: Boolean => v.toString
-    case v => escapeString(v.toString)
+    case x: Int => x.toString
+    case x: Boolean => x.toString
+    case null => "NULL"
+    case x => escapeString(x.toString)
   }
 
   protected def selectCommand(json: JsonObject): String = {
@@ -93,7 +92,7 @@ trait ConnectionHandler extends ScalaBusMod {
 
     Option(json.getArray("statements")) match {
       case Some(statements) => c.inTransaction { conn: Connection =>
-        val futures = (statements.asScala.map {
+        val futures = statements.asScala.map {
           case js: JsonObject =>
             js.getString("action") match {
               case "select" => Raw(selectCommand(js))
@@ -102,8 +101,8 @@ trait ConnectionHandler extends ScalaBusMod {
               case "raw" => Raw(js.getString("command"))
             }
           case _ => throw new IllegalArgumentException("'statements' needs JsonObjects!")
-        })
-        val f = (futures.foldLeft(Future[Any]()) { case (f, cmd) => f flatMap (_ => cmd.query(conn)) })
+        }
+        val f = futures.foldLeft(Future[Any]()) { case (fut, cmd) => fut flatMap (_ => cmd.query(conn)) }
         f map (_ => Ok(Json.obj()))
       }
       case None => throw new IllegalArgumentException("No 'statements' field in request!")
@@ -149,5 +148,15 @@ trait ConnectionHandler extends ScalaBusMod {
     Ok(result)
   }
 
-  private def rowDataToJsonArray(rowData: RowData): JsonArray = Json.arr(rowData.toList: _*)
+  private def dataToJson(data: Any): Any = data match {
+    case null => null
+    case x: Boolean => x
+    case x: Number => x
+    case x: String => x
+    case x: Array[Byte] => x
+    case x: JsonElement => x
+    case x => x.toString()
+  }
+
+  private def rowDataToJsonArray(rowData: RowData): JsonArray = Json.arr(rowData.map(dataToJson).toList: _*)
 }

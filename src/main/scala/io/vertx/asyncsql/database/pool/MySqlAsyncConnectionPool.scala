@@ -10,7 +10,10 @@ import org.vertx.scala.core.Vertx
 import org.vertx.scala.platform.Verticle
 import io.vertx.asyncsql.Starter
 
-class MySqlAsyncConnectionPool(verticle: Starter, config: Configuration, eventLoop: EventLoop, val maxPoolSize: Int) extends AsyncConnectionPool {
+class MySqlAsyncConnectionPool(val verticle: Starter, config: Configuration, eventLoop: EventLoop, val maxPoolSize: Int) extends AsyncConnectionPool {
+
+  implicit val executionContext = VertxExecutionContext.fromVertxAccess(verticle)
+  verticle.
 
   override def create() = new MySQLConnection(configuration = config, group = eventLoop).connect
 

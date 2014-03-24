@@ -8,7 +8,7 @@ import org.vertx.scala.core.VertxExecutionContext
 import org.vertx.scala.platform.Verticle
 import io.vertx.asyncsql.Starter
 
-class PostgreSqlAsyncConnectionPool(verticle: Starter, config: Configuration, eventLoop: EventLoop, val maxPoolSize: Int) extends AsyncConnectionPool {
+class PostgreSqlAsyncConnectionPool(val verticle: Starter, config: Configuration, eventLoop: EventLoop, val maxPoolSize: Int) extends AsyncConnectionPool {
 
   override def create() = new PostgreSQLConnection(configuration = config, group = eventLoop).connect
 

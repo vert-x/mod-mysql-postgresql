@@ -1,6 +1,5 @@
 package io.vertx.asyncsql.test
 
-import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.concurrent.Future
 import org.vertx.scala.core.json.{ Json, JsonArray }
 import org.vertx.testtools.VertxAssert._
@@ -61,7 +60,7 @@ class FileHandlesTests extends TestVerticle {
 
       vertx.eventBus.send("backend", json, { dbMsg: Message[JsonObject] =>
         val result = dbMsg.body()
-        msg.reply(result.getArray("results").get[JsonArray](0).get(0).toString());
+        msg.reply(result.getArray("results").get[JsonArray](0).get(0).toString())
       })
     })
 

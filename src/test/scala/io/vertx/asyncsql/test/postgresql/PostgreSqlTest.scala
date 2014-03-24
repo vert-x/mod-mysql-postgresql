@@ -25,6 +25,8 @@ class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
   @Test
   override def insertCorrect(): Unit = super.insertCorrect()
   @Test
+  override def insertNullValues(): Unit = super.insertNullValues()
+  @Test
   override def insertTypeTest(): Unit = super.insertTypeTest()
   @Test
   override def insertUniqueProblem(): Unit = super.insertUniqueProblem()
