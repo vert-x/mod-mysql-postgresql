@@ -12,7 +12,6 @@ import org.vertx.scala.mods.replies._
 import org.vertx.scala.core.Vertx
 import org.vertx.scala.platform.Container
 import io.vertx.asyncsql.Starter
-import org.vertx.scala.mods.ScalaBusMod.Receive
 
 trait ConnectionHandler extends ScalaBusMod {
   val verticle: Starter
@@ -30,7 +29,7 @@ trait ConnectionHandler extends ScalaBusMod {
   def statementDelimiter: String = ";"
 
   import org.vertx.scala.core.eventbus._
-  override def receive: Receive = (msg: Message[JsonObject]) => {
+  override def receive(msg: Message[JsonObject]) = {
     case "select" => select(msg.body)
     case "insert" => insert(msg.body)
     case "prepared" => AsyncReply(sendWithPool(prepared(msg.body)))
@@ -44,9 +43,9 @@ trait ConnectionHandler extends ScalaBusMod {
   protected def escapeString(str: String): String = "'" + str.replace("'", "''") + "'"
 
   protected def escapeValue(v: Any): String = v match {
+    case null => "NULL"
     case x: Int => x.toString
     case x: Boolean => x.toString
-    case null => "NULL"
     case x => escapeString(x.toString)
   }
 

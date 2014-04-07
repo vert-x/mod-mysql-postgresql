@@ -8,11 +8,9 @@ import com.github.mauricio.async.db.{ Configuration, Connection }
 import io.vertx.asyncsql.Starter
 import org.vertx.scala.core.VertxExecutionContext
 
-trait AsyncConnectionPool {
+trait AsyncConnectionPool extends VertxExecutionContext {
 
   val maxPoolSize: Int
-  val verticle: Starter
-  implicit val executionContext = VertxExecutionContext.fromVertxAccess(verticle)
 
   private var poolSize: Int = 0
   private val availableConnections: Queue[Connection] = Queue.empty
