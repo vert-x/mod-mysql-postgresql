@@ -1,8 +1,6 @@
 package io.vertx.asyncsql.test.postgresql
 
-import org.junit.Test
 import org.vertx.scala.core.json._
-
 import io.vertx.asyncsql.test.{ BaseSqlTests, SqlTestVerticle }
 
 class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
@@ -11,38 +9,5 @@ class PostgreSqlTest extends SqlTestVerticle with BaseSqlTests {
   val config = Json.obj("address" -> address, "maxPoolSize" -> 3)
 
   override def getConfig = config
-
-  @Test
-  override def simpleConnection(): Unit = super.simpleConnection()
-  @Test
-  override def poolSize(): Unit = super.poolSize()
-  @Test
-  override def multipleFields(): Unit = super.multipleFields()
-  @Test
-  override def multipleFieldsOrder(): Unit = super.multipleFieldsOrder()
-  @Test
-  override def createAndDropTable(): Unit = super.createAndDropTable()
-  @Test
-  override def insertCorrect(): Unit = super.insertCorrect()
-  @Test
-  override def insertNullValues(): Unit = super.insertNullValues()
-  @Test
-  override def insertTypeTest(): Unit = super.insertTypeTest()
-  @Test
-  override def insertUniqueProblem(): Unit = super.insertUniqueProblem()
-  @Test
-  override def insertMaliciousDataTest(): Unit = super.insertMaliciousDataTest()
-  @Test
-  override def selectWithoutFields(): Unit = super.selectWithoutFields()
-  @Test
-  override def selectEverything(): Unit = super.selectEverything()
-  @Test
-  override def selectFiltered(): Unit = super.selectFiltered()
-  @Test
-  override def preparedSelect(): Unit = super.preparedSelect()
-  @Test
-  override def transaction(): Unit = super.transaction()
-  @Test
-  override def transactionWithPreparedStatement(): Unit = super.transactionWithPreparedStatement()
 
 }

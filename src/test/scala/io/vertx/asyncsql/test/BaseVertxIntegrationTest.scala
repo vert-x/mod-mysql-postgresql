@@ -4,7 +4,6 @@ import scala.concurrent.{ Future, Promise }
 
 import org.vertx.scala.core.eventbus.Message
 import org.vertx.scala.core.json.JsonObject
-import org.vertx.scala.core.logging.Logger
 import org.vertx.scala.testtools.TestVerticle
 import org.vertx.testtools.VertxAssert.{ assertEquals, fail, testComplete }
 

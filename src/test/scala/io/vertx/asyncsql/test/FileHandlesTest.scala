@@ -60,6 +60,7 @@ class FileHandlesTests extends TestVerticle {
 
       vertx.eventBus.send("backend", json, { dbMsg: Message[JsonObject] =>
         val result = dbMsg.body()
+        assertEquals("Should get an 'ok' status reply", "ok", result.getString("status"))
         msg.reply(result.getArray("results").get[JsonArray](0).get(0).toString())
       })
     })
