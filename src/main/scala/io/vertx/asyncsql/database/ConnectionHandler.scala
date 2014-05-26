@@ -58,9 +58,9 @@ trait ConnectionHandler extends ScalaBusMod {
     }
   }
 
-  protected def select(json: JsonObject): AsyncReply = AsyncReply(pool.withConnection({ c: Connection =>
+  protected def select(json: JsonObject): AsyncReply = AsyncReply {
     sendWithPool(rawCommand(selectCommand(json)))
-  }))
+  }
 
   protected def insertCommand(json: JsonObject): String = {
     val table = json.getString("table")
