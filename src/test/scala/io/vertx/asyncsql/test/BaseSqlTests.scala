@@ -1,9 +1,12 @@
 package io.vertx.asyncsql.test
 
-import scala.concurrent.Future
-import org.vertx.scala.core.json.{Json, JsonArray}
+import scala.concurrent.{Future, Promise}
+import org.vertx.scala.core.json.{JsonObject, Json, JsonArray}
 import org.vertx.testtools.VertxAssert._
 import org.junit.Test
+import scala.util.{Success, Failure, Try}
+import org.vertx.scala.core.eventbus.Message
+import org.vertx.scala.core.FunctionConverters._
 
 trait BaseSqlTests {
   this: SqlTestVerticle =>
@@ -281,4 +284,42 @@ trait BaseSqlTests {
     }
   }
 
+  protected def expectOkMsg(q: JsonObject) = {
+    val p = Promise[Message[JsonObject]]()
+    vertx.eventBus.sendWithTimeout(address, q, 500L, {
+      case Success(reply) =>
+        logger.info("got a reply: " + reply.body().encode())
+        p.success(reply)
+      case Failure(ex) =>
+        logger.error("timeout", ex)
+        fail(s"got a timeout when expected an ok message ${ex.toString}")
+    }: Try[Message[JsonObject]] => Unit)
+    p.future
+  }
+
+  @Test
+  def startAndEndTransaction(): Unit = {
+    expectOkMsg(Json.obj("action" -> "start")) map { msg =>
+      msg.replyWithTimeout(raw("SELECT 15"), 500L, {
+        case Success(reply) => Option(reply.body().getArray("results")) map { arr =>
+          assertEquals("ok", reply.body().getString("status"))
+          assertEquals(1, arr.size())
+          assertEquals(15, arr
+            .get[JsonArray](0)
+            .get[Int](0))
+          reply.replyWithTimeout(Json.obj("action" -> "end"), 500L, {
+            case Success(endReply) =>
+              assertEquals("ok", endReply.body().getString("status"))
+              testComplete()
+            case Failure(ex) =>
+              logger.error("timeout", ex)
+              fail(s"got a timeout when expected end reply ${ex.toString}")
+          }: Try[Message[JsonObject]] => Unit)
+        }
+        case Failure(ex) =>
+          logger.error("timeout", ex)
+          fail(s"got a timeout when expected reply ${ex.toString}")
+      }: Try[Message[JsonObject]] => Unit)
+    }
+  }
 }
