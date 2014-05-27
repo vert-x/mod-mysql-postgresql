@@ -52,7 +52,7 @@ trait ConnectionHandler extends ScalaBusMod {
 
   private def regularReceive: Receive = { msg: Message[JsonObject] =>
     receiver(pool.withConnection)(msg).orElse {
-      case "start" => startTransaction(msg)
+      case "begin" => startTransaction(msg)
       case "transaction" => transaction(pool.withConnection)(msg.body())
     }
   }
@@ -75,7 +75,8 @@ trait ConnectionHandler extends ScalaBusMod {
       case x: BusModReply => mapRepliesToTransactionReceive(c)(x)
       case x => x
     }).orElse {
-      case "end" => endTransaction(c)
+      case "commit" => commitTransaction(c)
+      case "rollback" => rollbackTransaction(c)
     }
   }
 
@@ -94,11 +95,25 @@ trait ConnectionHandler extends ScalaBusMod {
     })
   }
 
-  protected def endTransaction(c: Connection) = {
+  protected def commitTransaction(c: Connection) = {
     logger.info("ending transaction!")
     AsyncReply {
       (for {
         qr <- c.sendQuery(transactionEnd)
+        _ <- pool.giveBack(c)
+      } yield {
+        Ok()
+      }) recover {
+        case ex => Error("Could not give back connection to pool", "CONNECTION_POOL_EXCEPTION", Json.obj("exception" -> ex))
+      }
+    }
+  }
+
+  protected def rollbackTransaction(c: Connection) = {
+    logger.info("rolling back transaction!")
+    AsyncReply {
+      (for {
+        qr <- c.sendQuery(transactionRollback)
         _ <- pool.giveBack(c)
       } yield {
         Ok()

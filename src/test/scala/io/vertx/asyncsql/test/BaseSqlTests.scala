@@ -299,7 +299,7 @@ trait BaseSqlTests {
 
   @Test
   def startAndEndTransaction(): Unit = {
-    expectOkMsg(Json.obj("action" -> "start")) map { msg =>
+    expectOkMsg(Json.obj("action" -> "begin")) map { msg =>
       logger.info("Should be in transaction!")
       msg.replyWithTimeout(raw("SELECT 15"), 500L, {
         case Success(reply) => Option(reply.body().getArray("results")) map { arr =>
@@ -309,7 +309,7 @@ trait BaseSqlTests {
             .get[JsonArray](0)
             .get[Number](0).longValue())
           logger.info("First select DONE!")
-          reply.replyWithTimeout(Json.obj("action" -> "end"), 500L, {
+          reply.replyWithTimeout(Json.obj("action" -> "commit"), 500L, {
             case Success(endReply) =>
               assertEquals("ok", endReply.body().getString("status"))
               testComplete()
@@ -322,6 +322,70 @@ trait BaseSqlTests {
           logger.error("timeout when waiting for SELECT reply", ex)
           fail(s"got a timeout when expected reply ${ex.toString}")
       }: Try[Message[JsonObject]] => Unit)
+    }
+  }
+
+  private def replyWithTimeout(msg: Message[JsonObject], value: JsonObject): Future[Message[JsonObject]] = {
+    val p = Promise[Message[JsonObject]]
+    msg.replyWithTimeout(value, 500L, {
+      case Success(r) => p.success(r)
+      case Failure(x) => p.failure(x)
+    }: Try[Message[JsonObject]] => Unit)
+    p.future
+  }
+
+  @Test
+  def updateInTransaction(): Unit = typeTestInsert {
+    (for{
+      beginReply <- expectOkMsg(Json.obj("action" -> "begin"))
+      updateReply <- replyWithTimeout(beginReply, raw("UPDATE some_test set email = 'updated@test.com' WHERE name = 'Mr. Test'"))
+      commitReply <- replyWithTimeout(updateReply, Json.obj("action" -> "commit"))
+      checkReply <- expectOk(raw("SELECT email FROM some_test WHERE name = 'Mr. Test'"))
+    } yield {
+      val results = checkReply.getArray("results")
+      val mrTest = results.get[JsonArray](0)
+      assertEquals("updated@test.com", mrTest.get[String](0))
+      logger.info("all tests completed")
+    }) recover {
+      case ex =>
+        logger.error("timeout when waiting for reply", ex)
+        fail(s"got a timeout when expected reply ${ex.toString}")
+    }
+  }
+
+  @Test
+  def rollBackTransaction(): Unit = typeTestInsert {
+    val fieldsArray = Json.arr("name", "email", "is_male", "age", "money", "wedding_date")
+    (for {
+      msg <- expectOkMsg(Json.obj("action" -> "begin"))
+      reply <- replyWithTimeout(msg, raw("UPDATE some_test set email = 'shouldRollback@test.com' WHERE name = 'Mr. Test'"))
+      checkUpdateReply <- {
+        assertEquals("ok", reply.body().getString("status"))
+        replyWithTimeout(reply, raw("SELECT email FROM some_test WHERE name = 'Mr. Test'"))
+      }
+      endReply <- {
+        assertEquals("ok", checkUpdateReply.body().getString("status"))
+        val results = checkUpdateReply.body().getArray("results")
+        val mrTest = results.get[JsonArray](0)
+        assertEquals("shouldRollback@test.com", mrTest.get[String](0))
+
+        logger.info("Update done, now do rollback")
+        replyWithTimeout(checkUpdateReply, Json.obj("action" -> "rollback"))
+      }
+      checkReply <- {
+        logger.info("rollback done, now check if everything is like before the update")
+        assertEquals("ok", endReply.body().getString("status"))
+        expectOk(select("some_test", fieldsArray))
+      }
+    } yield {
+      val results = checkReply.getArray("results")
+      val mrTest = results.get[JsonArray](0)
+      checkMrTest(mrTest)
+      logger.info("all tests completed")
+    }) recover {
+      case ex =>
+        logger.error("timeout when waiting for reply", ex)
+        fail(s"got a timeout when expected reply ${ex.toString}")
     }
   }
 }
