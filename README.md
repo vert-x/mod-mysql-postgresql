@@ -99,7 +99,8 @@ Creates a prepared statement and lets you fill the `?` with values.
 
     {
       "action" : "prepared",
-      "statement" : "SELECT * FROM some_test WHERE name=? AND money > ?
+      "statement" : "SELECT * FROM some_test WHERE name=? AND money > ?",
+      "values" : ["John", 1000]
     }
 
 ### transaction
