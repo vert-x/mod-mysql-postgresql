@@ -300,24 +300,26 @@ trait BaseSqlTests {
   @Test
   def startAndEndTransaction(): Unit = {
     expectOkMsg(Json.obj("action" -> "start")) map { msg =>
+      logger.info("Should be in transaction!")
       msg.replyWithTimeout(raw("SELECT 15"), 500L, {
         case Success(reply) => Option(reply.body().getArray("results")) map { arr =>
           assertEquals("ok", reply.body().getString("status"))
           assertEquals(1, arr.size())
           assertEquals(15, arr
             .get[JsonArray](0)
-            .get[Int](0))
+            .get[Number](0).longValue())
+          logger.info("First select DONE!")
           reply.replyWithTimeout(Json.obj("action" -> "end"), 500L, {
             case Success(endReply) =>
               assertEquals("ok", endReply.body().getString("status"))
               testComplete()
             case Failure(ex) =>
-              logger.error("timeout", ex)
+              logger.error("timeout when waiting for final reply (end transaction)", ex)
               fail(s"got a timeout when expected end reply ${ex.toString}")
           }: Try[Message[JsonObject]] => Unit)
         }
         case Failure(ex) =>
-          logger.error("timeout", ex)
+          logger.error("timeout when waiting for SELECT reply", ex)
           fail(s"got a timeout when expected reply ${ex.toString}")
       }: Try[Message[JsonObject]] => Unit)
     }

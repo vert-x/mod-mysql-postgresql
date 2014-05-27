@@ -1,7 +1,7 @@
 package io.vertx.asyncsql.database
 
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
-import scala.concurrent.Future
+import scala.concurrent.{Promise, Future}
 import org.vertx.scala.core.json.{JsonElement, JsonArray, JsonObject, Json}
 import org.vertx.scala.core.logging.Logger
 import com.github.mauricio.async.db.{Configuration, Connection, QueryResult, RowData}
@@ -31,7 +31,11 @@ trait ConnectionHandler extends ScalaBusMod {
 
   def transactionEnd: String = "COMMIT;"
 
+  def transactionRollback: String = "ROLLBACK;"
+
   def statementDelimiter: String = ";"
+
+  private def timeout = 500L /* FIXME from config file! */
 
   import org.vertx.scala.core.eventbus._
 
@@ -39,63 +43,69 @@ trait ConnectionHandler extends ScalaBusMod {
     def sendAsyncWithPool(fn: Connection => Future[QueryResult]) = AsyncReply(sendWithPool(withConnectionFn)(fn))
 
     {
-      case "select" => sendAsyncWithPool(rawCommand(selectCommand(msg.body)))
-      case "insert" => sendAsyncWithPool(rawCommand(insertCommand(msg.body)))
-      case "prepared" => sendAsyncWithPool(prepared(msg.body))
-      case "raw" => sendAsyncWithPool(rawCommand(msg.body.getString("command")))
-      case "transaction" => transaction(withConnectionFn)(msg.body)
+      case "select" => sendAsyncWithPool(rawCommand(selectCommand(msg.body())))
+      case "insert" => sendAsyncWithPool(rawCommand(insertCommand(msg.body())))
+      case "prepared" => sendAsyncWithPool(prepared(msg.body()))
+      case "raw" => sendAsyncWithPool(rawCommand(msg.body().getString("command")))
     }
   }
 
-  override def receive: Receive = { msg: Message[JsonObject] =>
+  private def regularReceive: Receive = { msg: Message[JsonObject] =>
     receiver(pool.withConnection)(msg).orElse {
       case "start" => startTransaction(msg)
+      case "transaction" => transaction(pool.withConnection)(msg.body())
     }
   }
+
+  override def receive: Receive = regularReceive
 
 
   //------------------
   //New transaction stuff
-  //TODO reformat when finished
+  private def mapRepliesToTransactionReceive(c: Connection): BusModReply => BusModReply = {
+    case AsyncReply(receiveEndFuture) => AsyncReply(receiveEndFuture.map(mapRepliesToTransactionReceive(c)))
+    case Ok(v, None) => Ok(v, Some(ReceiverWithTimeout(inTransactionReceive(c), timeout, () => failTransaction(c))))
+    case x => x
+  }
 
-  protected def endTransaction() = {
-    /* FIXME */
-    logger.info("ending transaction!")
+  private def inTransactionReceive(c: Connection): Receive = { msg: Message[JsonObject] =>
+    def withConnection[T](fn: Connection => Future[T]): Future[T] = fn(c)
+
+    receiver(withConnection)(msg).andThen({
+      case x: BusModReply => mapRepliesToTransactionReceive(c)(x)
+      case x => x
+    }).orElse {
+      case "end" => endTransaction(c)
+    }
   }
 
   protected def startTransaction(msg: Message[JsonObject]) = AsyncReply {
-    pool.withConnection({ c =>
-      def withConnection[T](fn: Connection => Future[T]): Future[T] = fn(c)
-
+    pool.take().flatMap { c =>
       c.sendQuery(transactionStart) map { _ =>
-        Ok(Json.obj(), Some(ReceiverWithTimeout(transactionQueryReply(withConnection), 500L /* FIXME from config file! */ , endTransaction)))
+        Ok(Json.obj(), Some(ReceiverWithTimeout(inTransactionReceive(c), timeout, () => failTransaction(c))))
       }
+    }
+  }
+
+  protected def failTransaction(c: Connection) = {
+    logger.info("NO REPLY BACK -> FAIL TRANSACTION!")
+    c.sendQuery(transactionRollback).andThen({
+      case _ => pool.giveBack(c)
     })
   }
 
-  private def transactionQueryReply(withConnection: (Connection => Future[SyncReply]) => Future[SyncReply]): Receive = { msg =>
-    val action = msg.body.getString("action")
-
-    receiver(withConnection)(msg).orElse{
-      case "start" => Error("cannot send 'start' action when inside of transaction!")
-      case "end" =>
-        logger.info("got action end!")
-        //        AsyncReply{withConnection}
+  protected def endTransaction(c: Connection) = {
+    logger.info("ending transaction!")
+    AsyncReply {
+      (for {
+        qr <- c.sendQuery(transactionEnd)
+        _ <- pool.giveBack(c)
+      } yield {
         Ok()
+      }) recover {
+        case ex => Error("Could not give back connection to pool", "CONNECTION_POOL_EXCEPTION", Json.obj("exception" -> ex))
+      }
     }
-
-    val opt = pf.lift(action).map({
-      case Ok(v, None) => Ok(v, Some(ReceiverWithTimeout(transactionQueryReply(withConnection), 500L /* FIXME from config file! */ , endTransaction)))
-      case x => x
-    }: Function[BusModReceiveEnd, BusModReceiveEnd])
-
-    opt.getOrElse {
-      case "start" => Error("cannot send 'start' action when inside of transaction!")
-      case "end" =>
-        logger.info("got action end!")
-        //        AsyncReply{withConnection}
-        Ok()
-    }: PartialFunction[String, BusModReceiveEnd]
   }
 
   //------------------
