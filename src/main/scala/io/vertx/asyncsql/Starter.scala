@@ -25,10 +25,11 @@ class Starter extends Verticle {
       val dbType = getDatabaseType(config)
       val configuration = getConfiguration(config, dbType)
       val maxPoolSize = config.getInteger("maxPoolSize", 10)
+      val transactionTimeout = config.getLong("transactionTimeout", 500L)
 
       handler = dbType match {
-        case "postgresql" => new PostgreSqlConnectionHandler(this, configuration, maxPoolSize)
-        case "mysql" => new MySqlConnectionHandler(this, configuration, maxPoolSize)
+        case "postgresql" => new PostgreSqlConnectionHandler(this, configuration, maxPoolSize, transactionTimeout)
+        case "mysql" => new MySqlConnectionHandler(this, configuration, maxPoolSize, transactionTimeout)
       }
       vertx.eventBus.registerHandler(address, handler)
 

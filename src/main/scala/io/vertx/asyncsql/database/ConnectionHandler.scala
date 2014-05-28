@@ -22,6 +22,7 @@ trait ConnectionHandler extends ScalaBusMod {
 
   val config: Configuration
   val maxPoolSize: Int
+  val transactionTimeout: Long
 
   lazy val vertx: Vertx = verticle.vertx
   lazy val container: Container = verticle.container
@@ -35,8 +36,6 @@ trait ConnectionHandler extends ScalaBusMod {
   def transactionRollback: String = "ROLLBACK;"
 
   def statementDelimiter: String = ";"
-
-  private def timeout = 500L /* FIXME from config file! */
 
   import org.vertx.scala.core.eventbus._
 
@@ -62,7 +61,7 @@ trait ConnectionHandler extends ScalaBusMod {
 
   private def mapRepliesToTransactionReceive(c: Connection): BusModReply => BusModReply = {
     case AsyncReply(receiveEndFuture) => AsyncReply(receiveEndFuture.map(mapRepliesToTransactionReceive(c)))
-    case Ok(v, None) => Ok(v, Some(ReceiverWithTimeout(inTransactionReceive(c), timeout, () => failTransaction(c))))
+    case Ok(v, None) => Ok(v, Some(ReceiverWithTimeout(inTransactionReceive(c), transactionTimeout, () => failTransaction(c))))
     case x => x
   }
 
@@ -81,7 +80,7 @@ trait ConnectionHandler extends ScalaBusMod {
   protected def beginTransaction(msg: Message[JsonObject]) = AsyncReply {
     pool.take().flatMap { c =>
       c.sendQuery(transactionBegin) map { _ =>
-        Ok(Json.obj(), Some(ReceiverWithTimeout(inTransactionReceive(c), timeout, () => failTransaction(c))))
+        Ok(Json.obj(), Some(ReceiverWithTimeout(inTransactionReceive(c), transactionTimeout, () => failTransaction(c))))
       }
     }
   }
