@@ -13,6 +13,7 @@ import org.vertx.scala.core.Vertx
 import org.vertx.scala.platform.Container
 import io.vertx.asyncsql.Starter
 import org.vertx.scala.mods.ScalaBusMod.Receive
+import scala.util.{Failure, Success}
 
 trait ConnectionHandler extends ScalaBusMod {
   val verticle: Starter
@@ -27,9 +28,9 @@ trait ConnectionHandler extends ScalaBusMod {
   lazy val logger: Logger = verticle.logger
   lazy val pool = AsyncConnectionPool(verticle, dbType, maxPoolSize, config)
 
-  def transactionStart: String = "BEGIN;"
+  def transactionBegin: String = "BEGIN;"
 
-  def transactionEnd: String = "COMMIT;"
+  def transactionCommit: String = "COMMIT;"
 
   def transactionRollback: String = "ROLLBACK;"
 
@@ -52,16 +53,13 @@ trait ConnectionHandler extends ScalaBusMod {
 
   private def regularReceive: Receive = { msg: Message[JsonObject] =>
     receiver(pool.withConnection)(msg).orElse {
-      case "begin" => startTransaction(msg)
+      case "begin" => beginTransaction(msg)
       case "transaction" => transaction(pool.withConnection)(msg.body())
     }
   }
 
   override def receive: Receive = regularReceive
 
-
-  //------------------
-  //New transaction stuff
   private def mapRepliesToTransactionReceive(c: Connection): BusModReply => BusModReply = {
     case AsyncReply(receiveEndFuture) => AsyncReply(receiveEndFuture.map(mapRepliesToTransactionReceive(c)))
     case Ok(v, None) => Ok(v, Some(ReceiverWithTimeout(inTransactionReceive(c), timeout, () => failTransaction(c))))
@@ -75,55 +73,41 @@ trait ConnectionHandler extends ScalaBusMod {
       case x: BusModReply => mapRepliesToTransactionReceive(c)(x)
       case x => x
     }).orElse {
-      case "commit" => commitTransaction(c)
       case "rollback" => rollbackTransaction(c)
+      case "commit" => commitTransaction(c)
     }
   }
 
-  protected def startTransaction(msg: Message[JsonObject]) = AsyncReply {
+  protected def beginTransaction(msg: Message[JsonObject]) = AsyncReply {
     pool.take().flatMap { c =>
-      c.sendQuery(transactionStart) map { _ =>
+      c.sendQuery(transactionBegin) map { _ =>
         Ok(Json.obj(), Some(ReceiverWithTimeout(inTransactionReceive(c), timeout, () => failTransaction(c))))
       }
     }
   }
 
+  private def endQuery(c: Connection, s: String) = c.sendQuery(s) andThen {
+    case _ => pool.giveBack(c)
+  }
+
   protected def failTransaction(c: Connection) = {
-    logger.info("NO REPLY BACK -> FAIL TRANSACTION!")
-    c.sendQuery(transactionRollback).andThen({
-      case _ => pool.giveBack(c)
-    })
+    logger.warn("Rolling back transaction, due to no reply")
+    endQuery(c, transactionRollback)
   }
 
-  protected def commitTransaction(c: Connection) = {
-    logger.info("ending transaction!")
-    AsyncReply {
-      (for {
-        qr <- c.sendQuery(transactionEnd)
-        _ <- pool.giveBack(c)
-      } yield {
-        Ok()
-      }) recover {
-        case ex => Error("Could not give back connection to pool", "CONNECTION_POOL_EXCEPTION", Json.obj("exception" -> ex))
-      }
-    }
-  }
-
-  protected def rollbackTransaction(c: Connection) = {
+  protected def rollbackTransaction(c: Connection) = AsyncReply {
     logger.info("rolling back transaction!")
-    AsyncReply {
-      (for {
-        qr <- c.sendQuery(transactionRollback)
-        _ <- pool.giveBack(c)
-      } yield {
-        Ok()
-      }) recover {
-        case ex => Error("Could not give back connection to pool", "CONNECTION_POOL_EXCEPTION", Json.obj("exception" -> ex))
-      }
+    endQuery(c, transactionRollback).map(_ => Ok()).recover {
+      case ex => Error("Could not rollback transaction", "ROLLBACK_FAILED", Json.obj("exception" -> ex))
     }
   }
 
-  //------------------
+  protected def commitTransaction(c: Connection) = AsyncReply {
+    logger.info("ending transaction with commit!")
+    endQuery(c, transactionCommit).map(_ => Ok()).recover {
+      case ex => Error("Could not commit transaction", "COMMIT_FAILED", Json.obj("exception" -> ex))
+    }
+  }
 
   def close() = pool.close()
 
