@@ -1,14 +1,17 @@
 package io.vertx.asyncsql.test.mysql
 
 import org.vertx.scala.core.json.Json
-import io.vertx.asyncsql.test.{ BaseSqlTests, SqlTestVerticle }
+import io.vertx.asyncsql.test.{BaseSqlTests, SqlTestVerticle}
 
 class MySqlTest extends SqlTestVerticle with BaseSqlTests {
 
   val address = "campudus.asyncdb"
   val config = Json.obj("address" -> address, "connection" -> "MySQL", "maxPoolSize" -> 3)
 
+  override def isMysql = true
+
   override def doBefore() = expectOk(raw("DROP TABLE IF EXISTS `some_test`"))
+
   override def getConfig = config
 
   override def createTableStatement(tableName: String) = """
@@ -22,6 +25,6 @@ CREATE TABLE """ + tableName + """ (
   wedding_date DATE,
   PRIMARY KEY (id)
 );
-"""
+                               """
 
 }

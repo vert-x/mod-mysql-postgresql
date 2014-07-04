@@ -62,6 +62,7 @@ trait ConnectionHandler extends ScalaBusMod {
   private def mapRepliesToTransactionReceive(c: Connection): BusModReply => BusModReply = {
     case AsyncReply(receiveEndFuture) => AsyncReply(receiveEndFuture.map(mapRepliesToTransactionReceive(c)))
     case Ok(v, None) => Ok(v, Some(ReceiverWithTimeout(inTransactionReceive(c), transactionTimeout, () => failTransaction(c))))
+    case Error(msg, id, v, None) => Error(msg, id, v, Some(ReceiverWithTimeout(inTransactionReceive(c), transactionTimeout, () => failTransaction(c))))
     case x => x
   }
 
