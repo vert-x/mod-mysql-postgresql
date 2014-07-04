@@ -380,8 +380,8 @@ trait BaseSqlTests {
   @Test
   def violateForeignKey(): Unit = (for {
     (msg, beginResult) <- sendOk(Json.obj("action" -> "begin"))
-    (msg, _) <- replyOk(msg, raw("DROP TABLE IF EXISTS test_one;"))
     (msg, _) <- replyOk(msg, raw("DROP TABLE IF EXISTS test_two;"))
+    (msg, _) <- replyOk(msg, raw("DROP TABLE IF EXISTS test_one;"))
     (msg, _) <- replyOk(msg, raw( """CREATE TABLE test_one (
                                     |  id SERIAL,
                                     |  name VARCHAR(255),
