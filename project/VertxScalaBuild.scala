@@ -7,7 +7,7 @@ object VertxScalaBuild extends Build {
 
   val baseSettings = Defaults.defaultSettings ++ Seq(
     organization := "io.vertx",
-    name := "mysql-postgresql",
+    name := "mod-mysql-postgresql",
     version := "0.3.0-SNAPSHOT",
     scalaVersion := "2.10.4",
     crossScalaVersions := Seq("2.10.4", "2.11.2"),
@@ -64,7 +64,7 @@ object VertxScalaBuild extends Build {
           <scm>
             <connection>scm:git:git://github.com/vert-x/mod-mysql-postgresql.git</connection>
             <developerConnection>scm:git:ssh://git@github.com/vert-x/mod-mysql-postgresql.git</developerConnection>
-            <url>hhttps://github.com/vert-x/mod-mysql-postgresql</url>
+            <url>https://github.com/vert-x/mod-mysql-postgresql</url>
           </scm>
           <developers>
             <developer>
