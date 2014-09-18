@@ -9,7 +9,7 @@
   "author": "Joern Bernhardt",
 
   // Optional fields
-  //"developers": ["Other Dev 1", "Other Dev 2"],
+  "developers": ["Max Stemplinger"],
   "keywords": ["db", "database", "mysql", "postgresql"],
   "homepage": "https://github.com/vert-x/mod-mysql-postgresql"
 }

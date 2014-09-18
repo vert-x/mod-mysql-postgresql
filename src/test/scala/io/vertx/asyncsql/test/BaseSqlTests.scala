@@ -13,7 +13,7 @@ trait BaseSqlTests {
 
   protected def isMysql: Boolean = false
 
-  private def failedTest: PartialFunction[Throwable, Unit] = {
+  protected def failedTest: PartialFunction[Throwable, Unit] = {
     case ex: Throwable =>
       logger.warn("failed in test", ex)
       fail("test failed. see warning above")
@@ -49,10 +49,10 @@ trait BaseSqlTests {
     (msg._1, msg._2)
   }
 
-  private def sendOk(json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
+  protected def sendOk(json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
     sendWithTimeout(json) map checkOkay(json)
 
-  private def sendFail(json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
+  protected def sendFail(json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
     sendWithTimeout(json) map checkError(json)
 
   private def replyOk(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
@@ -439,4 +439,32 @@ trait BaseSqlTests {
       testComplete()
     }) recover failedTest
   }
+
+  @Test
+  def dateTest(): Unit = (for {
+    _ <- setupTableTest()
+    (msg, insertReply) <- sendOk(raw("INSERT INTO some_test (name, wedding_date) VALUES ('tester', '2015-04-04');"))
+    (msg, reply) <- sendOk(prepared("SELECT wedding_date FROM some_test WHERE name=?", Json.arr("tester")))
+  } yield {
+    val receivedFields = reply.getArray("fields")
+    assertEquals(Json.arr("wedding_date"), receivedFields)
+    assertEquals("2015-04-04", reply.getArray("results").get[JsonArray](0).get[String](0))
+    testComplete()
+  }) recover failedTest
+
+  @Test
+  def timestampTest(): Unit = (for {
+    (m, r) <- sendOk(raw("DROP TABLE IF EXISTS date_test"))
+    (msg, r2) <- sendOk(raw(createDateTable("timestamp")))
+    (msg, insertReply) <- sendOk(raw("INSERT INTO date_test (test_date) VALUES ('2015-04-04T10:04:00.000');"))
+    (msg, reply) <- sendOk(raw("SELECT test_date FROM date_test"))
+  } yield {
+    val receivedFields = reply.getArray("fields")
+    assertEquals(Json.arr("test_date"), receivedFields)
+    logger.info("date is: " + reply.getArray("results").get[JsonArray](0).get[String](0))
+    assertEquals("2015-04-04T10:04:00.000", reply.getArray("results").get[JsonArray](0).get[String](0))
+    testComplete()
+  }) recover failedTest
+
 }
+
