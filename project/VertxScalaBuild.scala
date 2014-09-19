@@ -3,25 +3,31 @@ import java.nio.charset.StandardCharsets
 import sbt.Keys._
 import sbt._
 
-object VertxScalaBuild extends Build {
+object Variables {
+  val org = "io.vertx"
+  val name = "mod-mysql-postgresql"
+  val version = "0.3.0-SNAPSHOT"
+  val scalaVersion = "2.10.4"
+  val crossScalaVersions = Seq("2.10.4", "2.11.2")
+  val description = "Fully async MySQL / PostgreSQL module for Vert.x"
+}
 
-  val baseSettings = Defaults.defaultSettings ++ Seq(
-    organization := "io.vertx",
-    name := "mod-mysql-postgresql",
-    version := "0.3.0-SNAPSHOT",
-    scalaVersion := "2.10.4",
-    crossScalaVersions := Seq("2.10.4", "2.11.2"),
-    description := "Fully async MySQL / PostgreSQL module for Vert.x"
-  )
+object VertxScalaBuild extends Build {
 
   lazy val project = Project(
     "project",
     file("."),
-    settings = baseSettings ++ Seq(
+    settings = Seq(
+      organization := Variables.org,
+      name := Variables.name,
+      version := Variables.version,
+      scalaVersion := Variables.scalaVersion,
+      crossScalaVersions := Variables.crossScalaVersions,
+      description := Variables.description,
       copyModTask,
       zipModTask,
-      libraryDependencies ++= Dependencies.compile,
-      libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _),
+      libraryDependencies := Dependencies.compile,
+      //      libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _),
       // Fork JVM to allow Scala in-flight compilation tests to load the Scala interpreter
       fork in Test := true,
       // Vert.x tests are not designed to run in paralell
@@ -35,11 +41,12 @@ object VertxScalaBuild extends Build {
       resourceGenerators in Compile += Def.task {
         val file = (resourceManaged in Compile).value / "langs.properties"
         val contents = s"scala=io.vertx~lang-scala_${getMajor(scalaVersion.value)}~${Dependencies.Versions.vertxLangScalaVersion}:org.vertx.scala.platform.impl.ScalaVerticleFactory\n.scala=scala\n"
-        IO.write(file, contents)
+        IO.write(file, contents, StandardCharsets.UTF_8)
         Seq(file)
       }.taskValue,
-      copyMod <<= copyMod dependsOn (compile in Compile),
+      copyMod <<= copyMod dependsOn (copyResources in Compile),
       (test in Test) <<= (test in Test) dependsOn copyMod,
+      zipMod <<= zipMod dependsOn copyMod,
       (packageBin in Compile) <<= (packageBin in Compile) dependsOn copyMod,
       // Publishing settings
       publishMavenStyle := true,
@@ -78,7 +85,7 @@ object VertxScalaBuild extends Build {
             </developer>
           </developers>
     )
-  ).settings(addArtifact(Artifact("lang-scala", "zip", "zip", "mod"), zipMod).settings: _*)
+  ).settings(addArtifact(Artifact(Variables.name, "zip", "zip", "mod"), zipMod).settings: _*)
 
   val copyMod = TaskKey[Unit]("copy-mod", "Assemble the module into the local mods directory")
   val zipMod = TaskKey[File]("zip-mod", "Package the module .zip file")
@@ -88,7 +95,7 @@ object VertxScalaBuild extends Build {
     val modOwner = organization.value
     val modName = name.value
     val modVersion = version.value
-    val scalaMajor = scalaVersion.value.substring(0, scalaVersion.value.lastIndexOf('.'))
+    val scalaMajor = getMajor(scalaVersion.value)
     val moduleName = s"$modOwner~${modName}_$scalaMajor~$modVersion"
     log.info("Create module " + moduleName)
     val moduleDir = target.value / "mods" / moduleName
@@ -108,7 +115,7 @@ object VertxScalaBuild extends Build {
     val modOwner = organization.value
     val modName = name.value
     val modVersion = version.value
-    val scalaMajor = scalaVersion.value.substring(0, scalaVersion.value.lastIndexOf('.'))
+    val scalaMajor = getMajor(scalaVersion.value)
     val moduleName = s"$modOwner~${modName}_$scalaMajor~$modVersion"
     log.info("Create ZIP module " + moduleName)
     val moduleDir = target.value / "mods" / moduleName
@@ -155,24 +162,32 @@ object Dependencies {
 
     val vertxCore = "io.vertx" % "vertx-core" % vertxVersion % "provided"
     val vertxPlatform = "io.vertx" % "vertx-platform" % vertxVersion % "provided"
-    val vertxTesttools = "io.vertx" % "testtools" % testtoolsVersion % "provided"
     val vertxLangScala = "io.vertx" %% "lang-scala" % vertxLangScalaVersion % "provided"
-    val postgreSqlDriver = "com.github.mauricio" %% "postgresql-async" % asyncDriverVersion % "provided"
-    val mySqlDriver = "com.github.mauricio" %% "mysql-async" % asyncDriverVersion % "provided"
+    val postgreSqlDriver = ("com.github.mauricio" %% "postgresql-async" % asyncDriverVersion % "compile").excludeAll(
+      ExclusionRule(organization = "org.scala-lang"),
+      ExclusionRule(organization = "io.netty"),
+      ExclusionRule(organization = "org.slf4j")
+    )
+    val mySqlDriver = ("com.github.mauricio" %% "mysql-async" % asyncDriverVersion % "compile"). excludeAll(
+      ExclusionRule(organization = "org.scala-lang"),
+      ExclusionRule(organization = "io.netty"),
+      ExclusionRule(organization = "org.slf4j")
+    )
   }
 
   object Test {
 
     import Dependencies.Versions._
 
+    val vertxTesttools = "io.vertx" % "testtools" % testtoolsVersion % "test"
     val hamcrest = "org.hamcrest" % "hamcrest-library" % hamcrestVersion % "test"
     val junitInterface = "com.novocode" % "junit-interface" % junitInterfaceVersion % "test"
   }
 
   import Dependencies.Compile._
 
-  val test = List(Test.hamcrest, Test.junitInterface)
+  val test = List(Test.vertxTesttools, Test.hamcrest, Test.junitInterface)
 
-  val compile = List(vertxCore, vertxPlatform, vertxTesttools, vertxLangScala, postgreSqlDriver, mySqlDriver) ::: test
+  val compile = List(vertxCore, vertxPlatform, vertxLangScala, postgreSqlDriver, mySqlDriver) ::: test
 
 }
