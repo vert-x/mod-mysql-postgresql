@@ -15,7 +15,7 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
     val p = Promise[Unit]
     container.deployModule(System.getProperty("vertx.modulename"), getConfig(), 1, { deploymentID: AsyncResult[String] =>
       if (deploymentID.failed()) {
-        logger.info(deploymentID.cause())
+        logger.info(s"Deployment failed, cause: ${deploymentID.cause()}")
         p.failure(deploymentID.cause())
       }
       assertTrue("deploymentID should not be null", deploymentID.succeeded())
@@ -56,6 +56,8 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
 
   protected def transaction(statements: JsonObject*) = Json.obj("action" -> "transaction", "statements" -> Json.arr(statements: _*))
 
+  protected def newTransaction = Json.obj("action" -> "start")
+
   protected def createTable(tableName: String) = expectOk(raw(createTableStatement(tableName))) map { reply =>
     assertEquals(0, reply.getInteger("rows"))
     reply
@@ -64,6 +66,13 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
   protected def dropTable(tableName: String) = expectOk(raw("DROP TABLE " + tableName + ";")) map { reply =>
     reply
   }
+
+  protected def createDateTable(dateDataType :String) = s"""
+      |  CREATE TABLE date_test (
+      |    id SERIAL,
+      |    test_date $dateDataType
+      |  );
+    """.stripMargin
 
   protected def createTableStatement(tableName: String) = """
 DROP TABLE IF EXISTS """ + tableName + """;

@@ -4,7 +4,7 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 
 ## Requirements
 
-* Vert.x 2.1+ (with Scala language module v1.0)
+* Vert.x 2.1+ (with Scala language module v1.0.1+)
 * A working PostgreSQL or MySQL server
 * For testing PostgreSQL: A 'testdb' database on a local PostgreSQL install and a user called 'vertx'
 * For testing MySQL: A 'testdb' database on a local MySQL install and a user called 'root'
@@ -102,10 +102,111 @@ Creates a prepared statement and lets you fill the `?` with values.
     {
       "action" : "prepared",
       "statement" : "SELECT * FROM some_test WHERE name=? AND money > ?",
-      "values" : ["John", 1000]
+      "values" : ["Mr. Test", 15]
+    }
+    
+### raw - Raw commands
+    
+Use this action to send arbitrary commands to the database. You should be able to submit any query or insertion with this command. 
+  
+Here is an example for creating a table in PostgreSQL:
+
+    {
+      "action" : "raw",
+      "command" : "CREATE TABLE some_test (
+                     id SERIAL,
+                     name VARCHAR(255),
+                     email VARCHAR(255),
+                     is_male BOOLEAN,
+                     age INT,
+                     money FLOAT,
+                     wedding_date DATE
+                   );"
+    }
+    
+And if you want to drop it again, you can send the following:
+    
+        {
+          "action" : "raw",
+          "command" : "DROP TABLE some_test;"
+        }
+    
+### Transactions
+
+These commands let you begin a transaction and send an arbitrary number of statements within the started transaction. You can then commit or rollback the transaction.
+Nested transactions are not possible until now!
+
+Remember to reply to the messages after you send the `begin` command. Look in the docs how this works (e.g. for Java: [http://vertx.io/core_manual_java.html#replying-to-messages](http://vertx.io/core_manual_java.html#replying-to-messages)).
+With replying to the messages, the module is able to send all statements within the same transaction. If you don't reply within the `timeoutTransaction` interval, the transaction will automatically fail and rollback.
+    
+#### transaction begin
+
+This command starts a transaction. You get an Ok message back to which you can then reply with more statements.
+
+    {
+        "action" : "begin"
     }
 
-### transaction
+#### transaction commit
+
+To commit a transaction you have to send the `commit` command.
+
+    {
+        "action" : "commit"
+    }
+
+#### transaction rollback
+
+To rollback a transaction you have to send the `rollback` command.
+
+    {
+        "action" : "rollback"
+    }
+    
+#### Example for a transaction
+
+Here is a small example on how a transaction works.
+
+    {
+        "action" : "begin"
+    }
+
+This will start the transaction. You get this response:
+
+    {
+        "status" : "ok"
+    }
+    
+You can then reply to this message with the commands `select`, `prepared`, `insert` and `raw`.
+A possible reply could be this:
+
+    {
+        "action" : "raw",
+        "command" : "UPDATE some_test SET email = 'foo@bar.com' WHERE id = 1"
+    }
+    
+You get a reply back depending on the statement you sent. In this case the answer would be:
+
+    {
+        "status" : "ok",
+        "rows" : 1,
+        "message" : "UPDATE 1"
+    }
+    
+If you want to make more statements you just have to reply to this message again with the next statement.
+When you have done all statements you can `commit` or `rollback` the transaction.
+
+    {
+        "action" : "commit"
+    }
+    
+If everything worked, the last answer will be:
+
+    {
+        "status" : "ok"
+    }
+
+#### old transaction command (deprecated, use the new transaction mechanism with begin and commit)
 
 Takes several statements and wraps them into a single transaction for the server to process. Use `statement : [...actions...]` to create such a transaction. Only `select`, `insert` and `raw` commands are allowed right now.
 
@@ -129,33 +230,7 @@ Takes several statements and wraps them into a single transaction for the server
         }
       ]
     }
-
-### raw - Raw commands
-
-Use this action to send arbitrary commands to the database. You should be able to do submit any query or insertion with this command. 
-
-Here is an example for creating a table in PostgreSQL:
-
-    {
-      "action" : "raw",
-      "command" : "CREATE TABLE some_test (
-                     id SERIAL,
-                     name VARCHAR(255),
-                     email VARCHAR(255),
-                     is_male BOOLEAN,
-                     age INT,
-                     money FLOAT,
-                     wedding_date DATE
-                   );"
-    }
-
-And if you want to drop it again, you can send the following:
-
-    {
-      "action" : "raw",
-      "command" : "DROP TABLE some_test;"
-    }
-
+    
 ## Planned actions
 
 You can always use `raw` to do anything on the database. If the statement is a query, it will return its results just like a `select`.
