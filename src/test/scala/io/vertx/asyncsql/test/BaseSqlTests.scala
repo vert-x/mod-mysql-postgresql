@@ -11,6 +11,8 @@ import org.vertx.scala.core.FunctionConverters._
 trait BaseSqlTests {
   this: SqlTestVerticle =>
 
+  private val timeout: Int = 15000
+
   protected def isMysql: Boolean = false
 
   protected def failedTest: PartialFunction[Throwable, Unit] = {
@@ -21,7 +23,7 @@ trait BaseSqlTests {
 
   private def sendWithTimeout(json: JsonObject): Future[(Message[JsonObject], JsonObject)] = {
     val p = Promise[(Message[JsonObject], JsonObject)]()
-    vertx.eventBus.sendWithTimeout(address, json, 5000, {
+    vertx.eventBus.sendWithTimeout(address, json, timeout, {
       case Success(reply) => p.success(reply, reply.body())
       case Failure(ex) => p.failure(ex)
     }: Try[Message[JsonObject]] => Unit)
@@ -30,7 +32,7 @@ trait BaseSqlTests {
 
   private def replyWithTimeout(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] = {
     val p = Promise[(Message[JsonObject], JsonObject)]()
-    msg.replyWithTimeout(json, 5000, {
+    msg.replyWithTimeout(json, timeout, {
       case Success(reply) => p.success(reply, reply.body())
       case Failure(ex) => p.failure(ex)
     }: Try[Message[JsonObject]] => Unit)
