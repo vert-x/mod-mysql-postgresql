@@ -8,10 +8,7 @@ import scala.concurrent.Future
 
 class BadlyConfiguredPostgreSqlTest extends SqlTestVerticle {
 
-  val address = "campudus.asyncdb"
-  val config = Json.obj("address" -> address, "database" -> "nonexistent")
-
-  override def getConfig = config
+  override def getConfig() = baseConf.putString("database", "nonexistent")
 
   @Test
   def testNonExistentDatabase(): Unit = asyncTest {

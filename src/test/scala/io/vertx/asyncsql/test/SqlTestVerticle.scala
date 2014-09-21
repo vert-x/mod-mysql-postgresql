@@ -10,6 +10,10 @@ import org.vertx.testtools.VertxAssert.{assertEquals, assertTrue}
 
 abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTest {
 
+  val address = "campudus.asyncdb"
+
+  protected val baseConf =   Json.obj("address" -> address, "maxPoolSize" -> 3, "transactionTimeout" -> 5000L)
+
   override final def before() {}
   override def asyncBefore(): Future[Unit] = {
     val p = Promise[Unit]

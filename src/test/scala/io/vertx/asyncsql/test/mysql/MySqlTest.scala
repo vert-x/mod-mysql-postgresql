@@ -7,14 +7,11 @@ import org.vertx.testtools.VertxAssert._
 
 class MySqlTest extends SqlTestVerticle with BaseSqlTests {
 
-  val address = "campudus.asyncdb"
-  val config = Json.obj("address" -> address, "connection" -> "MySQL", "maxPoolSize" -> 3)
-
   override def isMysql = true
 
   override def doBefore() = expectOk(raw("DROP TABLE IF EXISTS `some_test`"))
 
-  override def getConfig = config
+  override def getConfig() = baseConf.putString("connection", "MySQL")
 
   override def createDateTable(dateDataType: String) = s"""
       |  CREATE TABLE date_test (
