@@ -6,18 +6,18 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 
 * Vert.x 2.1+ (with Scala language module v1.1.0+)
 * A working PostgreSQL or MySQL server
-* For testing PostgreSQL: A 'testdb' database on a local PostgreSQL install and a user called 'vertx'
-* For testing MySQL: A 'testdb' database on a local MySQL install and a user called 'root'
+* For testing PostgreSQL: A `testdb` database on a local PostgreSQL install and a user called `vertx`
+* For testing MySQL: A `testdb` database on a local MySQL install and a user called `root`
 
 ## Installation
 
 Depending on your Scala version, you should download the specific version. If you're using Scala 2.10.x:
 
-`vertx install io.vertx~mod-mysql-postgresql_2.10~0.3.0-SNAPSHOT`
+`vertx install io.vertx~mod-mysql-postgresql_2.10~0.3.0`
 
 If you're using Scala 2.11.x:
 
-`vertx install io.vertx~mod-mysql-postgresql_2.11~0.3.0-SNAPSHOT`
+`vertx install io.vertx~mod-mysql-postgresql_2.11~0.3.0`
 
 If you get a "not found" exception, you might need to edit the repos.txt of your Vert.x installation to use https. See [issue 35](https://github.com/vert-x/mod-mysql-postgresql/issues/35) (thanks, @dparshin!).
 
@@ -65,7 +65,7 @@ The module will reply to all requests. In the message, there will be either a `"
       ]
     } 
 
-* `rows` gives you the number of rows affected by the statement sent to the server. Bear in mind that MySQL only shows a row count on changed rows (DELETE, UPDATE, INSERT statements) whereas PostgreSQL also shows the number of SELECTed rows here.
+* `rows` gives you the number of rows affected by the statement sent to the server. Bear in mind that PostgreSQL 8.4 only shows a row count on changed rows (DELETE, UPDATE, INSERT statements) whereas PostgreSQL 9.x and MySQL also show the number of SELECTed rows here.
 * `message` is a status message from the server.
 * `fields` contains the list of fields of the selected table - Only present if the request resulted in a result set.
 * `results` contains a list of rows - Only present if the request resulted in a result set.
