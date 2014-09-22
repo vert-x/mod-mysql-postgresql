@@ -21,6 +21,12 @@ If you're using Scala 2.11.x:
 
 If you get a "not found" exception, you might need to edit the repos.txt of your Vert.x installation to use https. See [issue 35](https://github.com/vert-x/mod-mysql-postgresql/issues/35) (thanks, @dparshin!).
 
+If you get `java.lang.ClassNotFoundException: org.vertx.scala.core.VertxAccess$class` please update your `langs.properties` scala entry to:
+
+    scala=io.vertx~lang-scala_2.10~1.1.0-M1:org.vertx.scala.platform.impl.ScalaVerticleFactory
+
+If you're using Scala in your own project and want to use Scala 2.11, you can change `lang-scala_2.10` to `lang-scala_2.11`.
+
 ## Configuration
 
     {
