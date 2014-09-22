@@ -25,6 +25,8 @@ If you get `java.lang.ClassNotFoundException: org.vertx.scala.core.VertxAccess$c
 
     scala=io.vertx~lang-scala_2.10~1.1.0-M1:org.vertx.scala.platform.impl.ScalaVerticleFactory
 
+If you're using Scala in your own project and want to use Scala 2.11, you can change `lang-scala_2.10` to `lang-scala_2.11`.
+
 ## Configuration
 
     {
