@@ -80,9 +80,9 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
       |  );
     """.stripMargin
 
-  protected def createTableStatement(tableName: String) = """
-          DROP TABLE IF EXISTS """ + tableName + """;
-          CREATE TABLE """ + tableName + """ (
+  protected def createTableStatement(tableName: String) = s"""
+          DROP TABLE IF EXISTS $tableName;
+          CREATE TABLE $tableName (
             id SERIAL,
             name VARCHAR(255),
             email VARCHAR(255) UNIQUE,

@@ -19,19 +19,19 @@ class MySqlTest extends SqlTestVerticle with BaseSqlTests {
       |  );
     """.stripMargin
 
-  override def createTableStatement(tableName: String) = """
-CREATE TABLE """ + tableName + """ (
-  id INT NOT NULL AUTO_INCREMENT,
-  name VARCHAR(255),
-  email VARCHAR(255) UNIQUE,
-  is_male BOOLEAN,
-  age INT,
-  money FLOAT,
-  wedding_date DATE,
-  PRIMARY KEY (id)
-);"""
+  override def createTableStatement(tableName: String) = s"""
+          CREATE TABLE $tableName (
+            id INT NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255),
+            email VARCHAR(255) UNIQUE,
+            is_male BOOLEAN,
+            age INT,
+            money FLOAT,
+            wedding_date DATE,
+            PRIMARY KEY (id)
+          );""".stripMargin
 
-  override def createTableTestTwo: String = s"""CREATE TABLE test_two (
+  override def createTableTestTwo: String = """CREATE TABLE test_two (
          |  id SERIAL,
          |  name VARCHAR(255),
          |  one_id BIGINT UNSIGNED NOT NULL,
