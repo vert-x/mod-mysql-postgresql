@@ -11,32 +11,29 @@ class MySqlTest extends SqlTestVerticle with BaseSqlTests {
 
   override def getConfig() = baseConf.putString("connection", "MySQL")
 
-  override def createDateTable(dateDataType: String) = s"""
-      |  CREATE TABLE date_test (
-      |    id INT NOT NULL AUTO_INCREMENT,
-      |    test_date $dateDataType,
-      |    PRIMARY KEY(id)
-      |  );
-    """.stripMargin
+  override def createDateTable(dateDataType: String) = s"""CREATE TABLE date_test (
+                                                          |  id INT NOT NULL AUTO_INCREMENT,
+                                                          |  test_date $dateDataType,
+                                                          |  PRIMARY KEY(id)
+                                                          |);""".stripMargin
 
-  override def createTableStatement(tableName: String) = s"""
-          CREATE TABLE $tableName (
-            id INT NOT NULL AUTO_INCREMENT,
-            name VARCHAR(255),
-            email VARCHAR(255) UNIQUE,
-            is_male BOOLEAN,
-            age INT,
-            money FLOAT,
-            wedding_date DATE,
-            PRIMARY KEY (id)
-          );""".stripMargin
+  override def createTableStatement(tableName: String) = s"""CREATE TABLE $tableName (
+                                                            |  id INT NOT NULL AUTO_INCREMENT,
+                                                            |  name VARCHAR(255),
+                                                            |  email VARCHAR(255) UNIQUE,
+                                                            |  is_male BOOLEAN,
+                                                            |  age INT,
+                                                            |  money FLOAT,
+                                                            |  wedding_date DATE,
+                                                            |  PRIMARY KEY (id)
+                                                            |);""".stripMargin
 
   override def createTableTestTwo: String = """CREATE TABLE test_two (
-         |  id SERIAL,
-         |  name VARCHAR(255),
-         |  one_id BIGINT UNSIGNED NOT NULL,
-         |  PRIMARY KEY (id)
-         |);""".stripMargin
+                                              |  id SERIAL,
+                                              |  name VARCHAR(255),
+                                              |  one_id BIGINT UNSIGNED NOT NULL,
+                                              |  PRIMARY KEY (id)
+                                              |);""".stripMargin
 
   @Test
   def datetimeTest(): Unit =

@@ -73,29 +73,26 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
     reply
   }
 
-  protected def createDateTable(dateDataType: String) = s"""
-      |  CREATE TABLE date_test (
-      |    id SERIAL,
-      |    test_date $dateDataType
-      |  );
-    """.stripMargin
+  protected def createDateTable(dateDataType: String) = s"""CREATE TABLE date_test (
+                                                            |  id SERIAL,
+                                                            |  test_date $dateDataType
+                                                            |);""".stripMargin
 
-  protected def createTableStatement(tableName: String) = s"""
-          DROP TABLE IF EXISTS $tableName;
-          CREATE TABLE $tableName (
-            id SERIAL,
-            name VARCHAR(255),
-            email VARCHAR(255) UNIQUE,
-            is_male BOOLEAN,
-            age INT,
-            money DOUBLE PRECISION,
-            wedding_date DATE
-          );"""
+  protected def createTableStatement(tableName: String) = s"""DROP TABLE IF EXISTS $tableName;
+                                                              CREATE TABLE $tableName (
+                                                              |  id SERIAL,
+                                                              |  name VARCHAR(255),
+                                                              |  email VARCHAR(255) UNIQUE,
+                                                              |  is_male BOOLEAN,
+                                                              |  age INT,
+                                                              |  money DOUBLE PRECISION,
+                                                              |  wedding_date DATE
+                                                              |);""".stripMargin
 
   protected def createTableTestTwo: String = s"""CREATE TABLE test_two (
-         |  id SERIAL,
-         |  name VARCHAR(255),
-         |  one_id BIGINT NOT NULL,
-         |  PRIMARY KEY (id)
-         |);""".stripMargin
+                                                 |  id SERIAL,
+                                                 |  name VARCHAR(255),
+                                                 |  one_id BIGINT NOT NULL,
+                                                 |  PRIMARY KEY (id)
+                                                 |);""".stripMargin
 }
