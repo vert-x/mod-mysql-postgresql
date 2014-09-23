@@ -12,9 +12,10 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
 
   val address = "campudus.asyncdb"
 
-  protected val baseConf =   Json.obj("address" -> address, "maxPoolSize" -> 3, "transactionTimeout" -> 5000L)
+  protected val baseConf = Json.obj("address" -> address, "maxPoolSize" -> 3, "transactionTimeout" -> 5000L)
 
   override final def before() {}
+
   override def asyncBefore(): Future[Unit] = {
     val p = Promise[Unit]
     container.deployModule(System.getProperty("vertx.modulename"), getConfig(), 1, { deploymentID: AsyncResult[String] =>
@@ -47,6 +48,7 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
     Json.obj("action" -> "insert", "table" -> table, "fields" -> fields, "values" -> values)
 
   protected def select(table: String, fields: JsonArray): JsonObject = select(table, Some(fields))
+
   protected def select(table: String, fields: JsonArray, conditions: JsonObject): JsonObject = select(table, Some(fields), Some(conditions))
 
   protected def select(table: String, fields: Option[JsonArray] = None, conditions: Option[JsonObject] = None): JsonObject = {
@@ -71,7 +73,7 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
     reply
   }
 
-  protected def createDateTable(dateDataType :String) = s"""
+  protected def createDateTable(dateDataType: String) = s"""
       |  CREATE TABLE date_test (
       |    id SERIAL,
       |    test_date $dateDataType
@@ -79,15 +81,21 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
     """.stripMargin
 
   protected def createTableStatement(tableName: String) = """
-DROP TABLE IF EXISTS """ + tableName + """;
-CREATE TABLE """ + tableName + """ (
-  id SERIAL,
-  name VARCHAR(255),
-  email VARCHAR(255) UNIQUE,
-  is_male BOOLEAN,
-  age INT,
-  money DOUBLE PRECISION,
-  wedding_date DATE
-);
-"""
+          DROP TABLE IF EXISTS """ + tableName + """;
+          CREATE TABLE """ + tableName + """ (
+            id SERIAL,
+            name VARCHAR(255),
+            email VARCHAR(255) UNIQUE,
+            is_male BOOLEAN,
+            age INT,
+            money DOUBLE PRECISION,
+            wedding_date DATE
+          );"""
+
+  protected def createTableTestTwo: String = s"""CREATE TABLE test_two (
+         |  id SERIAL,
+         |  name VARCHAR(255),
+         |  one_id BIGINT NOT NULL,
+         |  PRIMARY KEY (id)
+         |);""".stripMargin
 }

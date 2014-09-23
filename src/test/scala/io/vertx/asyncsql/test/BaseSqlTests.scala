@@ -13,15 +13,13 @@ trait BaseSqlTests {
 
   private val timeout: Int = 15000
 
-  protected def isMysql: Boolean = false
-
   protected def failedTest: PartialFunction[Throwable, Unit] = {
     case ex: Throwable =>
       logger.warn("failed in test", ex)
       fail("test failed. see warning above")
   }
 
-  private def sendWithTimeout(json: JsonObject): Future[(Message[JsonObject], JsonObject)] = {
+  protected def sendWithTimeout(json: JsonObject): Future[(Message[JsonObject], JsonObject)] = {
     val p = Promise[(Message[JsonObject], JsonObject)]()
     vertx.eventBus.sendWithTimeout(address, json, timeout, {
       case Success(reply) => p.success(reply, reply.body())
@@ -30,7 +28,7 @@ trait BaseSqlTests {
     p.future
   }
 
-  private def replyWithTimeout(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] = {
+  protected def replyWithTimeout(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] = {
     val p = Promise[(Message[JsonObject], JsonObject)]()
     msg.replyWithTimeout(json, timeout, {
       case Success(reply) => p.success(reply, reply.body())
@@ -39,13 +37,13 @@ trait BaseSqlTests {
     p.future
   }
 
-  private def checkOkay(json: JsonObject)(msg: (Message[JsonObject], JsonObject)): (Message[JsonObject], JsonObject) = {
+  protected def checkOkay(json: JsonObject)(msg: (Message[JsonObject], JsonObject)): (Message[JsonObject], JsonObject) = {
     assertEquals(s"should get 'ok' back when sending ${json.encode()}, but got ${msg._2.encode()}",
       "ok", msg._2.getString("status"))
     (msg._1, msg._2)
   }
 
-  private def checkError(json: JsonObject)(msg: (Message[JsonObject], JsonObject)): (Message[JsonObject], JsonObject) = {
+  protected def checkError(json: JsonObject)(msg: (Message[JsonObject], JsonObject)): (Message[JsonObject], JsonObject) = {
     assertEquals(s"should get an 'error' back when sending ${json.encode()}, but got ${msg._2.encode()}",
       "error", msg._2.getString("status"))
     (msg._1, msg._2)
@@ -57,19 +55,19 @@ trait BaseSqlTests {
   protected def sendFail(json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
     sendWithTimeout(json) map checkError(json)
 
-  private def replyOk(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
+  protected def replyOk(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
     replyWithTimeout(msg, json) map checkOkay(json)
 
-  private def replyFail(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
+  protected def replyFail(msg: Message[JsonObject], json: JsonObject): Future[(Message[JsonObject], JsonObject)] =
     replyWithTimeout(msg, json) map checkError(json)
 
-  private def setupTableTest(): Future[_] = for {
+  protected def setupTableTest(): Future[_] = for {
     (msg, reply) <- sendOk(raw(createTableStatement("some_test")))
   } yield {
     assertEquals(0, reply.getInteger("rows"))
   }
 
-  private def setupTypeTest(): Future[_] = for {
+  protected def setupTypeTest(): Future[_] = for {
     _ <- setupTableTest()
     (msg, reply) <- sendOk(insert("some_test",
       Json.fromArrayString( """["name","email","is_male","age","money","wedding_date"]"""),
@@ -389,13 +387,7 @@ trait BaseSqlTests {
                                     |  name VARCHAR(255),
                                     |  PRIMARY KEY (id)
                                     |);""".stripMargin))
-    (msg, _) <- replyOk(msg, raw(
-      s"""CREATE TABLE test_two (
-         |  id SERIAL,
-         |  name VARCHAR(255),
-         |  one_id BIGINT ${if (isMysql) "UNSIGNED" else ""} NOT NULL,
-         |  PRIMARY KEY (id)
-         |);""".stripMargin))
+    (msg, _) <- replyOk(msg, raw(createTableTestTwo))
     (msg, _) <- replyOk(msg, raw(
       """ALTER TABLE test_two ADD CONSTRAINT test_two_one_id_fk
         |FOREIGN KEY (one_id)
