@@ -13,11 +13,11 @@ This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers
 
 Depending on your Scala version, you should download the specific version. If you're using Scala 2.10.x:
 
-`vertx install io.vertx~mod-mysql-postgresql_2.10~0.3.0`
+`vertx install io.vertx~mod-mysql-postgresql_2.10~0.3.1`
 
 If you're using Scala 2.11.x:
 
-`vertx install io.vertx~mod-mysql-postgresql_2.11~0.3.0`
+`vertx install io.vertx~mod-mysql-postgresql_2.11~0.3.1`
 
 If you get a "not found" exception, you might need to edit the repos.txt of your Vert.x installation to use https. See [issue 35](https://github.com/vert-x/mod-mysql-postgresql/issues/35) (thanks, @dparshin!).
 
