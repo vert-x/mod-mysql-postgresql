@@ -64,13 +64,11 @@ object Dependencies {
     "io.vertx" %% "lang-scala" % vertxLangScalaVersion % "provided",
     "com.github.mauricio" %% "postgresql-async" % asyncDriverVersion % "compile" excludeAll(
       ExclusionRule(organization = "org.scala-lang"),
-      ExclusionRule(organization = "io.netty"),
-      ExclusionRule(organization = "org.slf4j")
+      ExclusionRule(organization = "io.netty")
       ),
     "com.github.mauricio" %% "mysql-async" % asyncDriverVersion % "compile" excludeAll(
       ExclusionRule(organization = "org.scala-lang"),
-      ExclusionRule(organization = "io.netty"),
-      ExclusionRule(organization = "org.slf4j")
+      ExclusionRule(organization = "io.netty")
       )
   ) ::: test
 
