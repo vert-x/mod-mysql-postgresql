@@ -6,7 +6,7 @@ import sbt._
 object Variables {
   val org = "io.vertx"
   val name = "mod-mysql-postgresql"
-  val version = "0.3.1"
+  val version = "0.4.0-SNAPSHOT"
   val scalaVersion = "2.10.4"
   val crossScalaVersions = Seq("2.10.4", "2.11.2")
   val description = "Fully async MySQL / PostgreSQL module for Vert.x"
