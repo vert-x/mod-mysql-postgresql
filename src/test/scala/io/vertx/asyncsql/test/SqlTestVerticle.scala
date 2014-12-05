@@ -17,7 +17,7 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
   override final def before() {}
 
   override def asyncBefore(): Future[Unit] = {
-    val p = Promise[Unit]
+    val p = Promise[Unit]()
     container.deployModule(System.getProperty("vertx.modulename"), getConfig(), 1, { deploymentID: AsyncResult[String] =>
       if (deploymentID.failed()) {
         logger.info(s"Deployment failed, cause: ${deploymentID.cause()}")

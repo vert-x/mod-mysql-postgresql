@@ -75,7 +75,7 @@ class Starter extends Verticle {
   }
 
   private def defaultUserFor(connection: String): String = connection match {
-    case "postgresql" => "vertx"
+    case "postgresql" => "postgres"
     case "mysql" => "root"
   }
 
