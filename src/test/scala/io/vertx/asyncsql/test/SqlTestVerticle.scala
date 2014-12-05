@@ -12,6 +12,8 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
 
   val address = "campudus.asyncdb"
 
+  protected def blobDataType: String = "BLOB"
+
   protected val baseConf = Json.obj("address" -> address, "maxPoolSize" -> 3, "transactionTimeout" -> 5000L)
 
   override final def before() {}
@@ -77,6 +79,11 @@ abstract class SqlTestVerticle extends TestVerticle with BaseVertxIntegrationTes
                                                             |  id SERIAL,
                                                             |  test_date $dateDataType
                                                             |);""".stripMargin
+
+  protected def createBlobTable: String = s"""CREATE TABLE blob_test (
+                                            |  id SERIAL,
+                                            |  test_blob $blobDataType
+                                            |);""".stripMargin
 
   protected def createTableStatement(tableName: String) = s"""DROP TABLE IF EXISTS $tableName;
                                                               CREATE TABLE $tableName (

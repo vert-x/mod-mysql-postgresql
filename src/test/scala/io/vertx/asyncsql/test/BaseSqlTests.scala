@@ -1,5 +1,11 @@
 package io.vertx.asyncsql.test
 
+import java.nio.charset.StandardCharsets
+
+import org.vertx.java.core.Handler
+import org.vertx.java.core.json.impl.Base64
+import org.vertx.scala.core.buffer.Buffer
+
 import scala.concurrent.{Future, Promise}
 import org.vertx.scala.core.json.{JsonObject, Json, JsonArray}
 import org.vertx.testtools.VertxAssert._
@@ -455,10 +461,39 @@ trait BaseSqlTests {
   } yield {
     val receivedFields = reply.getArray("fields")
     assertEquals(Json.arr("test_date"), receivedFields)
-    logger.info("date is: " + reply.getArray("results").get[JsonArray](0).get[String](0))
-    assertEquals("2015-04-04T10:04:00.000", reply.getArray("results").get[JsonArray](0).get[String](0))
+    val date = reply.getArray("results").get[JsonArray](0).get[String](0)
+    logger.info(s"date is: $date")
+    assertEquals("2015-04-04T10:04:00.000", date)
     testComplete()
   }) recover failedTest
 
+  @Test
+  def blobUpload(): Unit = (for {
+    image <- readFile("example.jpg")
+    (msg, r0) <- sendOk(raw("DROP TABLE IF EXISTS blob_test"))
+    (msg, r1) <- sendOk(raw(createBlobTable))
+    (msg, r2) <- sendOk(prepared("INSERT INTO blob_test (test_blob) VALUES (?)", Json.emptyArr().addBinary(image)))
+    (msg, r3) <- sendOk(raw("SELECT test_blob FROM blob_test"))
+  } yield {
+    val receivedFields = r3.getArray("fields")
+    assertEquals(Json.arr("test_blob"), receivedFields)
+    logger.info(s"blob is: ${r3.getArray("results").get[JsonArray](0).get[Array[Byte]](0)}")
+    val blob = r3.getArray("results").get[JsonArray](0).get[JsonArray](0).toArray.map(_.asInstanceOf[Byte])
+    val str = new String(Base64.decode(new String(blob)))
+    logger.info(s"blob is2: ${blob.getClass}")
+    assertEquals(new String(image), str)
+    testComplete()
+  }) recover failedTest
+
+  private def readFile(file: String): Future[Array[Byte]] = {
+    val p = Promise[Array[Byte]]()
+    vertx.fileSystem.readFile(file, {
+      case Success(buffer) =>
+        logger.info(s"read file buffer in ${StandardCharsets.UTF_8.name()} encoding")
+        p.success(buffer.toString(StandardCharsets.UTF_8.name()).getBytes)
+      case Failure(ex) => p.failure(ex)
+    }: Try[Buffer] => Unit)
+    p.future
+  }
 }
 
