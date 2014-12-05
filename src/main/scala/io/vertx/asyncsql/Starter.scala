@@ -80,7 +80,7 @@ class Starter extends Verticle {
   }
 
   private def defaultPasswordFor(connection: String): Option[String] = connection match {
-    case "postgresql" => Some("test")
+    case "postgresql" => None
     case "mysql" => None
   }
 }
