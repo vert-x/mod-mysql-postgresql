@@ -47,7 +47,7 @@ If you're using Scala in your own project and want to use Scala 2.11, you can ch
 * `maxPoolSize` - The number of connections that may be kept open. Defaults to `10`.
 * `username` - The username to connect to the database. Defaults to `postgres` for PostgreSQL and `root` for MySQL.
 * `password` - The password to connect to the database. Default is not set, i.e. it uses no password.
-* `database` - The name of the database you want to connect to. Defaults to `test`.
+* `database` - The name of the database you want to connect to. Defaults to `testdb`.
 
 
 ## Usage
