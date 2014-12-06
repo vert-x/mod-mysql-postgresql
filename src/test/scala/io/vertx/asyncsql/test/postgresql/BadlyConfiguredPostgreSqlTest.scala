@@ -8,7 +8,7 @@ import scala.concurrent.Future
 
 class BadlyConfiguredPostgreSqlTest extends SqlTestVerticle {
 
-  override def getConfig() = baseConf.putString("database", "nonexistent")
+  override def getConfig() = baseConf.putString("username", "vertx").putString("password", "test").putString("database", "nonexistent")
 
   @Test
   def testNonExistentDatabase(): Unit = asyncTest {
@@ -16,4 +16,5 @@ class BadlyConfiguredPostgreSqlTest extends SqlTestVerticle {
       assertTrue(reply.getString("message").contains("nonexistent"))
     }
   }
+
 }
