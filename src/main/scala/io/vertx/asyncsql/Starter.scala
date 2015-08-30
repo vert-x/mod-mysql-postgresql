@@ -1,14 +1,17 @@
 package io.vertx.asyncsql
 
 import scala.annotation.implicitNotFound
-import scala.concurrent.{ ExecutionContext, Promise }
+import scala.concurrent.{ExecutionContext, Promise}
 
-import org.vertx.scala.core.json.{ Json, JsonObject }
+import org.vertx.scala.core.json.{Json, JsonObject}
 import org.vertx.scala.platform.Verticle
 
 import com.github.mauricio.async.db.Configuration
 
-import io.vertx.asyncsql.database.{ ConnectionHandler, MySqlConnectionHandler, PostgreSqlConnectionHandler }
+import org.vertx.scala.core.FunctionConverters._
+import io.vertx.asyncsql.database.{ConnectionHandler, MySqlConnectionHandler, PostgreSqlConnectionHandler}
+
+import scala.util.{Try, Failure, Success}
 
 class Starter extends Verticle {
 
@@ -31,11 +34,13 @@ class Starter extends Verticle {
         case "postgresql" => new PostgreSqlConnectionHandler(this, configuration, maxPoolSize, transactionTimeout)
         case "mysql" => new MySqlConnectionHandler(this, configuration, maxPoolSize, transactionTimeout)
       }
-      vertx.eventBus.registerHandler(address, handler)
-
-      logger.info("Async database module for MySQL and PostgreSQL started with config " + configuration)
-
-      startedResult.success()
+      vertx.eventBus.registerHandler(address, handler, {
+        case Success(x) =>
+          logger.info("Async database module for MySQL and PostgreSQL started")
+          startedResult.success()
+        case Failure(x) =>
+          startedResult.failure(x)
+      }: Try[Void] => Unit)
     } catch {
       case ex: Throwable =>
         logger.fatal("could not start async database module!", ex)
@@ -44,7 +49,12 @@ class Starter extends Verticle {
   }
 
   override def stop() {
-    Option(handler).map(_.close)
+    Option(handler).map(pool => pool.close() andThen {
+      case Success(x) =>
+        logger.info(s"Async database module for MySQL and PostgreSQL stopped completely on address ${container.config().getString("address")}")
+      case Failure(ex) =>
+        logger.warn(s"Async database module for MySQL and PostgreSQL failed to stop completely on address ${container.config().getString("address")}", ex)
+    })
   }
 
   private def getDatabaseType(config: JsonObject) = {
