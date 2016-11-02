@@ -1,15 +1,17 @@
-# mod-mysql-postgresql
+# Vert.x 2.x is **deprecated** - use instead http://vertx.io/docs/vertx-mysql-postgresql-client/java/
+
+## mod-mysql-postgresql
 
 This Vert.x module uses the https://github.com/mauricio/postgresql-async drivers to support a fully async module for MySQL and PostgreSQL.
 
-## Requirements
+### Requirements
 
 * Vert.x 2.1+ (with Scala language module v1.1.0+)
 * A working PostgreSQL or MySQL server
 * For testing PostgreSQL: A `testdb` database on a local PostgreSQL install and a user called `vertx`
 * For testing MySQL: A `testdb` database on a local MySQL install and a user called `root`
 
-## Installation
+### Installation
 
 Depending on your Scala version, you should download the specific version. If you're using Scala 2.10.x:
 
@@ -27,7 +29,7 @@ If you get `java.lang.ClassNotFoundException: org.vertx.scala.core.VertxAccess$c
 
 If you're using Scala in your own project and want to use Scala 2.11, you can change `lang-scala_2.10` to `lang-scala_2.11`.
 
-## Configuration
+### Configuration
 
     {
       "address" : <event-bus-addres-to-listen-on>,
@@ -50,13 +52,13 @@ If you're using Scala in your own project and want to use Scala 2.11, you can ch
 * `database` - The name of the database you want to connect to. Defaults to `testdb`.
 
 
-## Usage
+### Usage
 
 All commands are relatively similar. Use JSON with the `action` field and add the needed parameters for each command.
 
 There are only a few commands available currently, but in theory you should be able to invoke any command on the database with the `raw` action.
 
-### Reply messages
+#### Reply messages
 
 The module will reply to all requests. In the message, there will be either a `"status" : "ok"` or a `"status" : "error"`. If the request could be processed without problems, it will result in an "ok" status. See an example here:
 
@@ -83,7 +85,7 @@ If the request resulted in an error, a possible reply message looks like this:
       "message" : "column \"ager\" does not exist"
     }
 
-### insert
+#### insert
 
 Use this action to insert new rows into a table. You need to specify a table, the fields to insert and an array of rows to insert. The rows itself are an array of values.
 
@@ -97,7 +99,7 @@ Use this action to insert new rows into a table. You need to specify a table, th
       ]
     }
 
-### select
+#### select
 
 The `select` action creates a `SELECT` statement to get a projection from a table. You can filter the columns by providing a `fields` array. If you omit the `fields` array, it selects every column available in the table.
 
@@ -107,7 +109,7 @@ The `select` action creates a `SELECT` statement to get a projection from a tabl
       "fields" : ["name", "email", "is_male", "age", "money", "wedding_date"], // Optional
     }
 
-### prepared
+#### prepared
 
 Creates a prepared statement and lets you fill the `?` with values.
 
@@ -117,7 +119,7 @@ Creates a prepared statement and lets you fill the `?` with values.
       "values" : ["Mr. Test", 15]
     }
     
-### raw - Raw commands
+#### raw - Raw commands
     
 Use this action to send arbitrary commands to the database. You should be able to submit any query or insertion with this command. 
   
@@ -143,7 +145,7 @@ And if you want to drop it again, you can send the following:
           "command" : "DROP TABLE some_test;"
         }
     
-### Transactions
+#### Transactions
 
 These commands let you begin a transaction and send an arbitrary number of statements within the started transaction. You can then commit or rollback the transaction.
 Nested transactions are not possible until now!
@@ -151,7 +153,7 @@ Nested transactions are not possible until now!
 Remember to reply to the messages after you send the `begin` command. Look in the docs how this works (e.g. for Java: [http://vertx.io/core_manual_java.html#replying-to-messages](http://vertx.io/core_manual_java.html#replying-to-messages)).
 With replying to the messages, the module is able to send all statements within the same transaction. If you don't reply within the `timeoutTransaction` interval, the transaction will automatically fail and rollback.
     
-#### transaction begin
+##### transaction begin
 
 This command starts a transaction. You get an Ok message back to which you can then reply with more statements.
 
@@ -159,7 +161,7 @@ This command starts a transaction. You get an Ok message back to which you can t
         "action" : "begin"
     }
 
-#### transaction commit
+##### transaction commit
 
 To commit a transaction you have to send the `commit` command.
 
@@ -167,7 +169,7 @@ To commit a transaction you have to send the `commit` command.
         "action" : "commit"
     }
 
-#### transaction rollback
+##### transaction rollback
 
 To rollback a transaction you have to send the `rollback` command.
 
@@ -175,7 +177,7 @@ To rollback a transaction you have to send the `rollback` command.
         "action" : "rollback"
     }
     
-#### Example for a transaction
+##### Example for a transaction
 
 Here is a small example on how a transaction works.
 
@@ -218,7 +220,7 @@ If everything worked, the last answer will be:
         "status" : "ok"
     }
 
-#### old transaction command (deprecated, use the new transaction mechanism with begin and commit)
+##### old transaction command (deprecated, use the new transaction mechanism with begin and commit)
 
 Takes several statements and wraps them into a single transaction for the server to process. Use `statement : [...actions...]` to create such a transaction. Only `select`, `insert` and `raw` commands are allowed right now.
 
@@ -243,7 +245,7 @@ Takes several statements and wraps them into a single transaction for the server
       ]
     }
     
-## Planned actions
+### Planned actions
 
 You can always use `raw` to do anything on the database. If the statement is a query, it will return its results just like a `select`.
 
